@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RO-P-06-02 — Parte de Novedades — PETROSAR SA</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+:root {
+  --ps-bg:#f0f2f6; --ps-header-bg:#1e2d3e; --ps-header-bg2:#192638;
+  --ps-border:#e2e8f0; --ps-text:#1a202c; --ps-muted:#718096; --ps-accent:#e8a020;
+  --a4-width: 210mm;
+}
+* { box-sizing:border-box; }
+body { margin:0; background:var(--ps-bg); font-family:'DM Sans',sans-serif; color:var(--ps-text); }
+
+.ps-page { max-width:var(--a4-width); margin:0 auto; background:var(--ps-bg); min-height:100vh; box-shadow:0 0 24px rgba(0,0,0,.06); }
+
+.ps-header { background:linear-gradient(135deg,var(--ps-header-bg),var(--ps-header-bg2)); color:#fff; padding:18px 20px; display:flex; align-items:center; gap:14px; }
+.ps-header img { width:44px; height:44px; object-fit:contain; border-radius:10px; background:#fff; padding:4px; flex-shrink:0; }
+.ps-header-code { font-family:'DM Sans',sans-serif; font-weight:600; font-size:11px; letter-spacing:.05em; opacity:.65; text-transform:uppercase; }
+.ps-header-title { font-family:'Poppins',sans-serif; font-weight:800; font-size:18px; margin-top:1px; }
+.ps-header-sub { font-size:12px; opacity:.75; margin-top:2px; }
+
+.ps-tabs { display:flex; gap:4px; background:#fff; padding:0 16px; border-bottom:1px solid var(--ps-border); }
+.ps-tab { border:none; background:none; padding:13px 14px; font-weight:600; font-size:13px; color:var(--ps-muted); cursor:pointer; border-bottom:3px solid transparent; }
+.ps-tab.active { color:var(--ps-header-bg); border-bottom-color:var(--ps-accent); }
+
+.ps-main { padding:20px 20px 60px; }
+.ps-view { display:none; }
+.ps-view.active { display:block; }
+
+@media print {
+  body { background:#fff; }
+  .ps-page { box-shadow:none; }
+  .ps-tabs, .ps-add-btn, .ps-row-del, .ps-actions, #btnGenerar { display:none !important; }
+}
+
+.ps-content-card { background:#fff; border:1px solid var(--ps-border); border-radius:12px; padding:16px; margin-bottom:16px; }
+.ps-content-card-title { font-family:'Poppins',sans-serif; font-weight:700; font-size:14px; margin-bottom:12px; }
+
+.ps-form-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
+@media (max-width:600px){ .ps-form-row{ grid-template-columns:1fr; } }
+.ps-field label { display:block; font-size:11px; font-weight:600; text-transform:uppercase; color:var(--ps-muted); margin-bottom:4px; }
+.ps-input, textarea.ps-input { width:100%; padding:9px 10px; border:1px solid var(--ps-border); border-radius:8px; font-family:'DM Sans',sans-serif; font-size:14px; }
+textarea.ps-input { resize:vertical; min-height:50px; }
+
+.ps-item { margin-bottom:18px; }
+.ps-item > label { display:block; font-size:12px; font-weight:700; margin-bottom:6px; color:var(--ps-header-bg); }
+.ps-item small { display:block; font-size:11px; font-weight:400; color:var(--ps-muted); margin-top:-4px; margin-bottom:8px; }
+
+.ps-rows { display:flex; flex-direction:column; gap:6px; }
+.ps-row { display:grid; gap:6px; align-items:center; }
+.ps-row-2 { grid-template-columns: 1fr 1fr auto; }
+.ps-row-3 { grid-template-columns: 1fr 1fr 1fr auto; }
+.ps-row-4 { grid-template-columns: 1fr 1fr 1fr 0.7fr auto; }
+@media (max-width:600px){ .ps-row-2, .ps-row-3, .ps-row-4 { grid-template-columns: 1fr; } }
+.ps-row input { font-size:13px; }
+.ps-row-del { background:none; border:none; color:#c53030; font-size:16px; cursor:pointer; padding:4px 8px; }
+.ps-add-btn { margin-top:8px; background:none; border:1px dashed var(--ps-border); color:var(--ps-muted); border-radius:8px; padding:7px 12px; font-size:12px; font-weight:600; cursor:pointer; }
+
+.ps-btn { border:none; border-radius:8px; padding:10px 18px; font-weight:600; font-size:14px; cursor:pointer; }
+.ps-btn-accent { background:var(--ps-accent); color:#fff; }
+.ps-btn-outline { background:#fff; border:1px solid var(--ps-border); color:var(--ps-text); }
+.ps-actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:6px; }
+
+.ps-preview {
+  white-space:pre-wrap; background:#fafbfc; border:1px dashed var(--ps-border);
+  border-radius:8px; padding:14px; font-size:13px; font-family:'DM Sans',monospace; line-height:1.5;
+}
+
+.ps-historial-item { border-bottom:1px solid #f1f3f6; padding:10px 0; display:flex; justify-content:space-between; align-items:center; gap:10px; }
+.ps-historial-item:last-child { border-bottom:none; }
+.ps-historial-fecha { font-weight:600; font-size:13px; }
+.ps-empty { text-align:center; padding:20px; color:var(--ps-muted); font-size:13px; }
+
+.ps-kpi-grid { display:grid; grid-template-columns: repeat(auto-fit,minmax(120px,1fr)); gap:10px; margin-bottom:16px; }
+.ps-kpi { background:#fff; border:1px solid var(--ps-border); border-radius:12px; padding:12px 14px; text-align:center; }
+.ps-kpi-value { font-family:'Poppins',sans-serif; font-weight:800; font-size:22px; color:var(--ps-header-bg); }
+.ps-kpi-label { font-size:10px; text-transform:uppercase; color:var(--ps-muted); margin-top:2px; }
+
+.ps-toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--ps-header-bg); color:#fff; padding:11px 18px; border-radius:10px; font-size:13px; font-weight:600; display:none; z-index:99; }
+
+.ps-ocup-cell { text-align:center; font-weight:600; padding:4px 6px; font-size:12px; }
+.ps-table td.ps-ocup-promedio { font-weight:800; background:#f0f2f6; }
+.ps-recorrido-info { font-size:11px; color:var(--ps-muted); }
+</style>
+</head>
+<body>
+
+<div class="ps-page">
+
+<header class="ps-header">
+  <img src="data:image/png;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCACfAJsDASIAAhEBAxEB/8QAHQABAQADAAMBAQAAAAAAAAAAAAIGBwgDBAkFAf/EAEEQAAECAwQGBAsHAwUAAAAAAAABAgMEBQYHERITITJSkaEIMVFhFyI2QVZxdJKywtEUFjdCcoGxM3XBFSNVgvD/xAAcAQEAAQUBAQAAAAAAAAAAAAAAAQMEBQYHAgj/xAA0EQACAQIEBAIHCAMAAAAAAAAAAQIDBAURElEGITFBcbEzYYGRocHRExUWIjQ1UnJT4fH/2gAMAwEAAhEDEQA/AOh87993EZ377uJIOCa5bm35IrO/fdxGd++7iSBrluMkVnfvu4jO/fdxJA1y3GSKzv33cRnfvu4kga5bjJFZ377uIzv33cSQNctxkis7993EZ377uJIGuW4yRWd++7iM7993EkDXLcZIrO/fdxGd++7iSBrluMkVnfvu4jO/fdxJA1y3GSKzv33cS2vflTx3cTxFs2UPdOUs+pDSIABSPQAAAAAAAAAAAAAAAAAAAAAAAALZsoQWzZQqU+pDIABTJAAAAAAAMetra+lWVlEfOOWLMxExgy0NfHf3r2J3mnK7ebaipxHJAmW06CvVDgJrRO9y6y5o2tSqs10M9hfDl7iMdcFlHd/Lu/I6Fyr2LwGC9inJVdtZPyUnEnqnXJ1IbNaq6O7FV7ETHrNYVS+q2CTDkolUnJKCi+K5Yqucvfr1GYsuHLm8502st30PON4VbYNFK4uE5vpFRbfnyXifQMHz3S/W9VEw+9037rfoPDter6XTfut+hkfwVefzj8foah96UtmfQgHz38O16vpdN+636G3eijeZbe195UWl2ir0eek2yMSKkN7WomZFTBdSd5bXfCd1a0JVpTi1FZ9/oe6eI06k1FJ8zqsAGrGQAAABbNlCC2bKFSn1IZAAKZIAAAPTrVQgUmkzVSmVwhS0JYju/DqT91PcMAv3m3S9iUgNXD7TMMYveia/8FSlDXNR3L3DbVXd3ToPpJpezv8AA0pXqrN1urzFTnXq6NGdjhjqa3zNTuQ9EHt0SnxqrV5Smy/9WZipDavZj5zYeUV6kd1Sp0KfLlGK9yRo+9qsxJ6vOpzHr9nlPFyp1K/zqYUftW5l4knbOsykVVV8Gdiw1VetcHqn+D8U6fZ0o0qEIR6ZHy9i19O/vatxN5uTfu7L2IA2LdjZKnVSnPqdSYsdNIrIcPHBEw61Uzb7m2Z/4mDxX6mOucdt7eq6bTbW3/TZcL4DxHEbWNzCUYxlzWbeeXsTNCG+OhB+L0b+2xf5abLuVuwu8r7KnAq9mpaZiwFY+G5XuRUauKKmpe029Y+7Gw1kautWs5QYUhOLDWEsRkR6+KvWmCrh5jAYtxPa1repbqMs2su2XmY26wC4wy8dKq03HLpntnsZiADnZeAAAAtmyhBbNlCpT6kMgAFMkAAAGs+kH5N0/wBr+VTZhrPpCeTdP9r+VS4tfTRM3w3+6UfH5M0mZbdA1HXh0zFMcFeqevKpiRl1zuu8Smp+v4VM1W9HLwZ1vF/0Fb+svJmm+l1Y6PZq9WbqjIKpIVrGagvRPFz/AJ2+vHX+5ps7uvhrFgbbUCestXYU6kWDEckGYZBRXQIzdWZq9nannQ5WkLr5tai5JydhJKMeuVzE8aI3HUuHmxNxwTG6bs1G4emUVl4rs0cDq8JYrUqr7KhLKXsXvMiuehRIdk870VGxI7lbj2akMzPBISsCRk4UpLMRkGE1GtanYec1u8rq4rzqLuzvWDWDw+wpWsnm4pJ+Pc2l0d0X/Vau78qQGIvrxNzGtOj/AEx8vZ6dqkRMPtkfJD/SxPqpss1q8knWeRyviitGrilVx7ZL3JJ/EAAtTXwAAAWzZQgtmyhUp9SGQACmSAAADWfSE8m6f7X8qmzDWfSE8m6f7X8qlxa+miZvhv8AdKPj8maTMvuc/EWmet/wmIGXXOarxaYv6/hM1W9HLwZ1rGP0Ff8ArLyZ+FanynqvtkX4lPzjY1cuwtXOVqem4MOS0UaYfEZjHRFwVcUPFLXRWniORI0xT4DfOqxVd/CHiNxSUV+ZFpRx3DoUY6q0eSXf1Gvj8e1doJKz9OdMTD0dFVFSFCRfGev07zf9Fudp8FyPq9Tiza+eHBbo28es5U6TN31QsLbn/cnI09Tag1YslHiri5qIuuGve3+DJ4NC3vrn7KUvXlv6jWeIeOaVrQasVqk+WrLJL18+b8i7m77bQWFtHEizj4lQos5Gzzcm52zj+aHjsqnZ1Kdz2YrtMtLQZSuUeZbMyM3DR8N6c0XsVOpUPl+dM9By2sxArk/YebjK6UmYazUo1V2IjdpE7lTX+xmOKMDpVKDuqKylHr619V5HIbK9nKrpqPPV5/7OuQAc1M0AAAC2bKEFs2UKlPqQyAAUyQAAAaz6Qnk3T/a/lU2Yaz6Qnk3T/a/lUuLX00TN8N/ulHx+TNJmXXPfiJTf+/wqYiZfc5+ItM9b/hM1W9HLwZ1rF/0Fb+svJm1KnexdxTKjMU6oWup0vNy0RYUaE9y5mOTrRdR6/hlut9NqX76/Q4cvv/F61f8AdI3xKYabJQ4NtalKM3OXNJ9vofN88TqRk1kj6KLfNdaiY/fal++v0OX+lpehQre1em02zbnTMjTEerptzVakV7sNlF15UROs0WDJ4dwxa2FdV4yba6Z5fJFvXv6laGhrkDafRS03h0oGhx2ombDdyLiasOneg7YeZi1eet3OQVZKwIayskrk/qPXbcnciase1S/xy4hQsKsp9017XyKVrBzrRSOtVABxc2gAAAFs2UILZsoVKfUhkAApkgAAAwG+ukVOsUKSgUuSjTcRkzmc2GmKomXrM+B7pzdOSkuxd2F5KyuIXEFm47nNP3Gtf6PTvuGTXXWVtHTbcyE7P0ealpaHmzxHtwRNRvAF3O/nKLjkuZst1xldXFGdGVOKUk137+04WvYukvIq15lo6lTrIVKYlJmoRYkGKxiZXtVy4KmvqMY8Cd6voRVfcT6n0QBsVLjK6pwUFTjyWXf6nPJYZCTb1M+d/gTvV9CKr7ifUplyN6r3o1LE1NMfOrURP5PocD3+Nbv/ABx+P1I+6qf8mcdXZdFy0E/PQZu28xDpkg1Uc+WgvR8eIm7impvr1nXFDpVOodJlqTSZSHKSUsxGQYTEwRqJ/wC6z3QYDEsYusRknWfJdEuheULanQX5QADFlwAAAC2bKEFs2UKlPqQyAAUyQAAAAAAAAAAAAAAAAAAAAAAAAWzZQgtmyhUp9SGQCtG/d5jRv3eZGiWwzRIK0b93mNG/d5jRLYZokFaN+7zGjfu8xolsM0SCtG/d5jRv3eY0S2GaJBWjfu8xo37vMaJbDNEgrRv3eY0b93mNEthmiQVo37vMaN+7zGiWwzRIK0b93mNG/d5jRLYZokFaN+7zGjfu8xolsM0SWzZQ/mjfu8zyMhvyp4vM904Sz6ENo//Z" alt="PETROSAR SA">
+  <div>
+    <div class="ps-header-code">RO-P-06-02</div>
+    <div class="ps-header-title">PARTE DE NOVEDADES</div>
+    <div class="ps-header-sub">Transporte PAEG — PETROSAR SA</div>
+  </div>
+</header>
+
+<div class="ps-tabs">
+  <button class="ps-tab active" data-view="parte">📝 Parte diario</button>
+  <button class="ps-tab" data-view="stats">📊 Estadísticas</button>
+</div>
+
+<main class="ps-main">
+
+  <!-- VISTA: PARTE -->
+  <section class="ps-view active" id="view-parte">
+    <div class="ps-content-card">
+      <div class="ps-form-row">
+        <div class="ps-field">
+          <label>Fecha</label>
+          <input type="date" class="ps-input" id="f_fecha">
+        </div>
+        <div class="ps-field">
+          <label>Coordinador</label>
+          <input type="text" class="ps-input" id="f_coordinador" placeholder="Tu nombre">
+        </div>
+      </div>
+
+      <div class="ps-item">
+        <label>Vehículos que subieron a yacimiento</label>
+        <div class="ps-rows" id="rows_subieron"></div>
+        <button class="ps-add-btn" id="btnAddSubieron">+ Agregar vehículo</button>
+      </div>
+
+      <div class="ps-item">
+        <label>Crossdocking</label>
+        <div class="ps-rows" id="rows_crossdocking"></div>
+        <button class="ps-add-btn" id="btnAddCrossdocking">+ Agregar crossdocking</button>
+      </div>
+
+      <div class="ps-item">
+        <label>Vehículos suplantados por relevos</label>
+        <small>Elegí el interno titular y con qué interno se lo reemplazó — las listas recuerdan lo ya cargado</small>
+        <div class="ps-rows" id="rows_relevos"></div>
+        <button class="ps-add-btn" id="btnAddRelevo">+ Agregar relevo</button>
+      </div>
+
+      <div class="ps-item">
+        <label>¿Hubo afectación al personal de PAE por estos cambios?</label>
+        <textarea class="ps-input" id="c_afectacion_pae" placeholder="Dejar en blanco = Sin afectación"></textarea>
+      </div>
+
+      <div class="ps-item">
+        <label>Transbordos por rotura de unidad</label>
+        <div class="ps-rows" id="rows_transbordos"></div>
+        <button class="ps-add-btn" id="btnAddTransbordo">+ Agregar transbordo</button>
+      </div>
+
+      <div class="ps-item">
+        <label>Estado de rutas y caminos a yacimiento</label>
+        <div class="ps-row ps-row-2" style="grid-template-columns: 1fr 2fr;">
+          <select class="ps-input" id="c_estado_rutas">
+            <option value="Transitable">Transitable</option>
+            <option value="Alerta">Alerta</option>
+          </select>
+          <input type="text" class="ps-input" id="c_estado_rutas_obs" placeholder="Detalle (opcional)">
+        </div>
+      </div>
+
+      <div class="ps-item">
+        <label>Llegada tarde de unidad a destino</label>
+        <div class="ps-rows" id="rows_llegadas"></div>
+        <button class="ps-add-btn" id="btnAddLlegada">+ Agregar llegada tarde</button>
+      </div>
+
+      <div class="ps-item">
+        <label>Cambio de planta</label>
+        <textarea class="ps-input" id="c_cambio_planta" placeholder="Dejar en blanco = Sin cambios"></textarea>
+      </div>
+
+      <div class="ps-item">
+        <label>Vehículos afectados</label>
+        <textarea class="ps-input" id="c_afectados" placeholder="Dejar en blanco = Sin unidades afectadas"></textarea>
+      </div>
+
+      <button class="ps-btn ps-btn-accent" id="btnGenerar">Generar parte</button>
+    </div>
+
+    <div class="ps-content-card" id="cardPreview" style="display:none;">
+      <div class="ps-content-card-title">Parte generado</div>
+      <div class="ps-preview" id="preview"></div>
+      <div class="ps-actions">
+        <button class="ps-btn ps-btn-outline" id="btnCopiar">Copiar texto</button>
+        <button class="ps-btn ps-btn-outline" id="btnPdf">Descargar PDF</button>
+        <button class="ps-btn ps-btn-accent" id="btnGuardar">Guardar en historial</button>
+      </div>
+    </div>
+
+    <div class="ps-content-card">
+      <div class="ps-content-card-title">Historial</div>
+      <div id="historial"><div class="ps-empty">Cargando...</div></div>
+    </div>
+  </section>
+
+  <!-- VISTA: ESTADISTICAS -->
+  <section class="ps-view" id="view-stats">
+    <div class="ps-kpi-grid" id="statKpis"></div>
+    <div class="ps-content-card">
+      <div class="ps-content-card-title">% Ocupación por recorrido — mes a mes</div>
+      <div class="ps-table-wrap">
+        <table class="ps-table" id="tablaOcupacion">
+          <thead><tr id="theadOcupacion"></tr></thead>
+          <tbody id="tbodyOcupacion"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="ps-content-card">
+      <div class="ps-content-card-title">Pasajeros transportados a yacimiento — mes a mes</div>
+      <canvas id="chartPax" height="220"></canvas>
+    </div>
+    <div class="ps-content-card">
+      <div class="ps-content-card-title">Transbordos por rotura de unidad — mes a mes</div>
+      <canvas id="chartTransbordos" height="220"></canvas>
+    </div>
+  </section>
+
+</main>
+
+</div>
+
+<datalist id="dl_internos"></datalist>
+<datalist id="dl_internos_fijos"></datalist>
+
+<div class="ps-toast" id="toast"></div>
+
+<script>
+// =========================================================
+// CONFIGURACIÓN SUPABASE — completar antes de desplegar
+// =========================================================
+const SUPABASE_URL = "https://pwyhhyskmbeawpzyanmf.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB3eWhoeXNrbWJlYXdwenlhbm1mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzNDQ3MTAsImV4cCI6MjEwMDkyMDcxMH0.dkLOCrbXTUxcypaL1YXMT75uK8ZmouGIjNQWoAPEJEc";
+const TABLE = "partes_diarios";
+
+// Lista fija de internos y su capacidad de butacas (misma que la planilla de ocupación)
+const INTERNOS_BUTACAS = {"847":19,"854":19,"993":19,"994":19,"843":19,"851":19,"875":44,"907":19,"995":19,"841":19,"842":19,"845":19,"996":19,"855":19,"856":19,"890":19,"849":19,"874":44,"876":44,"880":44,"888":19,"844":19,"853":19,"857":19,"878":44,"889":19,"877":44,"848":19,"879":44,"881":44,"882":44,"908":19,"929":19,"930":19,"931":19,"932":19,"953":19};
+const INTERNOS_ORDENADOS = Object.keys(INTERNOS_BUTACAS).sort((a,b) => Number(a) - Number(b));
+
+document.getElementById("dl_internos_fijos").innerHTML =
+  INTERNOS_ORDENADOS.map(i => `<option value="${i}" label="${i} (${INTERNOS_BUTACAS[i]} but.)"></option>`).join("");
+
+const INTERNOS_INFO = {"847":{"od":"CR- CD","zona":"Centro-Loma"},"854":{"od":"CR- CD","zona":"Centro-Loma"},"993":{"od":"CR- CD","zona":"Centro-Loma"},"994":{"od":"CR- CD","zona":"Centro-Loma"},"843":{"od":"CR- CD","zona":"Centro-Loma"},"851":{"od":"CR- CD","zona":"Periferia"},"875":{"od":"CR- CD","zona":"Periferia"},"907":{"od":"CR- CD","zona":"Periferia"},"995":{"od":"CR- CD","zona":"Periferia"},"841":{"od":"CR- CD","zona":"Periferia"},"842":{"od":"CR- CD","zona":"Zona Norte"},"845":{"od":"CR- CD","zona":"Zona Norte"},"996":{"od":"CR- CD","zona":"Zona Norte"},"855":{"od":"CR- CD","zona":"Zona Norte"},"856":{"od":"CR- CD","zona":"Zona Norte"},"890":{"od":"CR- CD","zona":"Zona Norte"},"849":{"od":"RT-CD","zona":"Rada Tilly"},"874":{"od":"RT-CD","zona":"Rada Tilly"},"876":{"od":"RT-CD","zona":"Rada Tilly"},"880":{"od":"RT-CD","zona":"Rada Tilly"},"888":{"od":"STO-CD","zona":"Sarmiento"},"844":{"od":"CR-CD","zona":"Periferia"},"853":{"od":"CR-CD","zona":"Zona Norte"},"857":{"od":"CR-CD","zona":"Zona Norte"},"878":{"od":"CR- RESERO","zona":"Zona Norte"},"889":{"od":"RT-RESERO","zona":"Rada Tilly"},"877":{"od":"CR-VH","zona":"Centro-Loma"},"848":{"od":"RT-VH","zona":"Rada Tilly"},"879":{"od":"CR- ORIENTAL","zona":"Periferia"},"881":{"od":"RT-ORIENTAL","zona":"Rada Tilly"},"882":{"od":"CR-TP","zona":"Periferia"},"908":{"od":"STO-Oriental","zona":"Sarmiento"},"929":{"od":"Resero - Comodoro","zona":"Comodoro"},"930":{"od":"Resero - ZN","zona":"Comodoro"},"931":{"od":"VH - Comodoro","zona":"Comodoro"},"932":{"od":"VH - Medanos","zona":"Comodoro"},"953":{"od":"VH - ZN","zona":"Comodoro"}};
+
+document.getElementById("f_fecha").valueAsDate = new Date();
+
+const LOGO_BASE64 = document.querySelector(".ps-header img").src;
+
+async function sbFetch(path, options = {}) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    ...options,
+    headers: {
+      "apikey": SUPABASE_ANON_KEY,
+      "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+      "Content-Type": "application/json",
+      "Prefer": options.prefer || "return=representation",
+      ...(options.headers || {})
+    }
+  });
+  if (!res.ok) throw new Error(`Supabase error ${res.status}: ${await res.text()}`);
+  if (res.status === 204) return null;
+  return res.json();
+}
+
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.style.display = "block";
+  setTimeout(() => t.style.display = "none", 2200);
+}
+function fechaFmt(iso) {
+  const [y,m,d] = iso.split("-");
+  return `${d}/${m}/${y}`;
+}
+
+// --- Tabs ---
+document.querySelectorAll(".ps-tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".ps-tab").forEach(t => t.classList.remove("active"));
+    document.querySelectorAll(".ps-view").forEach(v => v.classList.remove("active"));
+    tab.classList.add("active");
+    document.getElementById("view-" + tab.dataset.view).classList.add("active");
+    if (tab.dataset.view === "stats") renderStats();
+  });
+});
+
+// =========================================================
+// FILAS DINÁMICAS
+// =========================================================
+
+// -- Vehículos que subieron: Origen | Destino | Interno --
+let subieronRows = [];
+function addSubidaRow(data = {}) {
+  subieronRows.push({ id: Date.now() + Math.random(), origen: data.origen || "", destino: data.destino || "", interno: data.interno || "", pax: data.pax || "" });
+  renderSubieron();
+}
+function renderSubieron() {
+  const el = document.getElementById("rows_subieron");
+  const ORIGENES = ["Comodoro", "Rada Tilly", "Sarmiento"];
+  const DESTINOS = ["CD", "TP", "VH", "OR", "AG", "RES"];
+  el.innerHTML = subieronRows.map(r => `
+    <div class="ps-row ps-row-4">
+      <select class="ps-input" onchange="updateSubida('${r.id}','origen',this.value)">
+        <option value="">Origen</option>
+        ${ORIGENES.map(o => `<option value="${o}" ${r.origen === o ? "selected" : ""}>${o}</option>`).join("")}
+      </select>
+      <select class="ps-input" onchange="updateSubida('${r.id}','destino',this.value)">
+        <option value="">Destino</option>
+        ${DESTINOS.map(d => `<option value="${d}" ${r.destino === d ? "selected" : ""}>${d}</option>`).join("")}
+      </select>
+      <input type="text" class="ps-input" list="dl_internos_fijos" placeholder="Interno" value="${r.interno}" oninput="updateSubida('${r.id}','interno',this.value)">
+      <input type="number" min="0" class="ps-input" placeholder="Pax" value="${r.pax}" oninput="updateSubida('${r.id}','pax',this.value)">
+      <button class="ps-row-del" onclick="removeSubida('${r.id}')">✕</button>
+    </div>
+  `).join("");
+}
+function updateSubida(id, field, val) {
+  const row = subieronRows.find(r => r.id == id);
+  if (row) row[field] = val;
+}
+function removeSubida(id) {
+  subieronRows = subieronRows.filter(r => r.id != id);
+  renderSubieron();
+}
+document.getElementById("btnAddSubieron").addEventListener("click", () => addSubidaRow());
+
+// -- Crossdocking: Origen | Destino | Interno --
+let crossdockingRows = [];
+function addCrossdockingRow(data = {}) {
+  crossdockingRows.push({ id: Date.now() + Math.random(), origen: data.origen || "", destino: data.destino || "", interno: data.interno || "" });
+  renderCrossdocking();
+}
+function renderCrossdocking() {
+  const el = document.getElementById("rows_crossdocking");
+  const ORIGENES = ["Comodoro", "Rada Tilly", "Sarmiento"];
+  const DESTINOS = ["CD", "TP", "VH", "OR", "AG", "RES"];
+  el.innerHTML = crossdockingRows.map(r => `
+    <div class="ps-row ps-row-3">
+      <select class="ps-input" onchange="updateCrossdocking('${r.id}','origen',this.value)">
+        <option value="">Origen</option>
+        ${ORIGENES.map(o => `<option value="${o}" ${r.origen === o ? "selected" : ""}>${o}</option>`).join("")}
+      </select>
+      <select class="ps-input" onchange="updateCrossdocking('${r.id}','destino',this.value)">
+        <option value="">Destino</option>
+        ${DESTINOS.map(d => `<option value="${d}" ${r.destino === d ? "selected" : ""}>${d}</option>`).join("")}
+      </select>
+      <input type="text" class="ps-input" list="dl_internos_fijos" placeholder="Interno" value="${r.interno}" oninput="updateCrossdocking('${r.id}','interno',this.value)">
+      <button class="ps-row-del" onclick="removeCrossdocking('${r.id}')">✕</button>
+    </div>
+  `).join("");
+}
+function updateCrossdocking(id, field, val) {
+  const row = crossdockingRows.find(r => r.id == id);
+  if (row) row[field] = val;
+}
+function removeCrossdocking(id) {
+  crossdockingRows = crossdockingRows.filter(r => r.id != id);
+  renderCrossdocking();
+}
+document.getElementById("btnAddCrossdocking").addEventListener("click", () => addCrossdockingRow());
+
+// -- Relevos: Titular | Relevo (con datalist / memoria) --
+let relevosRows = [];
+let historicoInternos = []; // memoria: internos usados anteriormente como titular o relevo
+function addRelevoRow(data = {}) {
+  relevosRows.push({ id: Date.now() + Math.random(), titular: data.titular || "", relevo: data.relevo || "" });
+  renderRelevos();
+}
+function renderRelevos() {
+  const el = document.getElementById("rows_relevos");
+  el.innerHTML = relevosRows.map(r => `
+    <div class="ps-row ps-row-2">
+      <input type="text" class="ps-input" list="dl_internos" placeholder="Interno titular" value="${r.titular}" oninput="updateRelevo('${r.id}','titular',this.value)">
+      <input type="text" class="ps-input" list="dl_internos" placeholder="Interno relevo" value="${r.relevo}" oninput="updateRelevo('${r.id}','relevo',this.value)">
+      <button class="ps-row-del" onclick="removeRelevo('${r.id}')">✕</button>
+    </div>
+  `).join("");
+}
+function updateRelevo(id, field, val) {
+  const row = relevosRows.find(r => r.id == id);
+  if (row) row[field] = val;
+}
+function removeRelevo(id) {
+  relevosRows = relevosRows.filter(r => r.id != id);
+  renderRelevos();
+}
+document.getElementById("btnAddRelevo").addEventListener("click", () => addRelevoRow());
+
+function actualizarDatalistInternos() {
+  const dl = document.getElementById("dl_internos");
+  dl.innerHTML = historicoInternos.map(v => `<option value="${v}">`).join("");
+}
+
+// -- Transbordos: Interno | Detalle --
+let transbordosRows = [];
+function addTransbordoRow(data = {}) {
+  transbordosRows.push({ id: Date.now() + Math.random(), interno: data.interno || "", detalle: data.detalle || "" });
+  renderTransbordos();
+}
+function renderTransbordos() {
+  const el = document.getElementById("rows_transbordos");
+  el.innerHTML = transbordosRows.map(r => `
+    <div class="ps-row ps-row-2">
+      <input type="text" class="ps-input" placeholder="Interno" value="${r.interno}" oninput="updateTransbordo('${r.id}','interno',this.value)">
+      <input type="text" class="ps-input" placeholder="Detalle (opcional)" value="${r.detalle}" oninput="updateTransbordo('${r.id}','detalle',this.value)">
+      <button class="ps-row-del" onclick="removeTransbordo('${r.id}')">✕</button>
+    </div>
+  `).join("");
+}
+function updateTransbordo(id, field, val) {
+  const row = transbordosRows.find(r => r.id == id);
+  if (row) row[field] = val;
+}
+function removeTransbordo(id) {
+  transbordosRows = transbordosRows.filter(r => r.id != id);
+  renderTransbordos();
+}
+document.getElementById("btnAddTransbordo").addEventListener("click", () => addTransbordoRow());
+
+// -- Llegadas tarde: Interno | Motivo --
+const MOTIVOS_LLEGADA_TARDE = ["Condición climática adversa", "Corte de ruta", "Accidente / incidente", "Otro"];
+let llegadasRows = [];
+function addLlegadaRow(data = {}) {
+  llegadasRows.push({ id: Date.now() + Math.random(), interno: data.interno || "", motivo: data.motivo || "" });
+  renderLlegadas();
+}
+function renderLlegadas() {
+  const el = document.getElementById("rows_llegadas");
+  el.innerHTML = llegadasRows.map(r => `
+    <div class="ps-row ps-row-2">
+      <input type="text" class="ps-input" placeholder="Interno" value="${r.interno}" oninput="updateLlegada('${r.id}','interno',this.value)">
+      <select class="ps-input" onchange="updateLlegada('${r.id}','motivo',this.value)">
+        <option value="">Motivo</option>
+        ${MOTIVOS_LLEGADA_TARDE.map(m => `<option value="${m}" ${r.motivo === m ? "selected" : ""}>${m}</option>`).join("")}
+      </select>
+      <button class="ps-row-del" onclick="removeLlegada('${r.id}')">✕</button>
+    </div>
+  `).join("");
+}
+function updateLlegada(id, field, val) {
+  const row = llegadasRows.find(r => r.id == id);
+  if (row) row[field] = val;
+}
+function removeLlegada(id) {
+  llegadasRows = llegadasRows.filter(r => r.id != id);
+  renderLlegadas();
+}
+document.getElementById("btnAddLlegada").addEventListener("click", () => addLlegadaRow());
+
+// Las filas de "vehículos que subieron" y "crossdocking" se inicializan según el
+// último parte guardado (ver inicializarFormulario, llamada desde cargarTodo).
+// Relevos, transbordos y llegadas arrancan siempre con 1 fila vacía por día.
+addRelevoRow();
+addTransbordoRow();
+addLlegadaRow();
+
+function inicializarFormulario() {
+  const ultimo = registros[0]; // el más reciente (order fecha.desc)
+  const subieronPrevios = ultimo?.contenido?.vehiculos_subieron || [];
+  const crossdockingPrevios = ultimo?.contenido?.crossdocking || [];
+
+  if (subieronPrevios.length) {
+    subieronPrevios.forEach(r => addSubidaRow({ origen: r.origen, destino: r.destino, interno: r.interno, pax: "" }));
+  } else {
+    for (let i = 0; i < 9; i++) addSubidaRow();
+  }
+
+  if (crossdockingPrevios.length) {
+    crossdockingPrevios.forEach(r => addCrossdockingRow({ origen: r.origen, destino: r.destino, interno: r.interno }));
+  } else {
+    addCrossdockingRow();
+  }
+}
+
+// =========================================================
+// GENERAR TEXTO / PDF / GUARDAR
+// =========================================================
+let ultimoParte = null;
+
+function construirTexto() {
+  const fecha = document.getElementById("f_fecha").value;
+  const coordinador = document.getElementById("f_coordinador").value;
+  const afectacionPae = document.getElementById("c_afectacion_pae").value.trim();
+  const estadoRutas = document.getElementById("c_estado_rutas").value;
+  const estadoRutasObs = document.getElementById("c_estado_rutas_obs").value.trim();
+  const cambioPlanta = document.getElementById("c_cambio_planta").value.trim();
+  const vehiculosAfectados = document.getElementById("c_afectados").value.trim();
+
+  const subieron = subieronRows.filter(r => r.origen || r.destino || r.interno);
+  const crossdocking = crossdockingRows.filter(r => r.origen || r.destino || r.interno);
+  const relevos = relevosRows.filter(r => r.titular || r.relevo);
+  const transbordos = transbordosRows.filter(r => r.interno || r.detalle);
+  const llegadas = llegadasRows.filter(r => r.interno || r.motivo);
+
+  let lineas = [];
+  lineas.push("RO-P-06-02 — PARTE DE NOVEDADES - TRANSPORTE PAEG");
+  lineas.push(`Fecha: ${fechaFmt(fecha)}`);
+  lineas.push("");
+
+  lineas.push("VEHÍCULOS QUE SUBIERON A YACIMIENTO");
+  if (subieron.length) subieron.forEach(r => {
+    const butacas = INTERNOS_BUTACAS[r.interno];
+    const ocupacionTxt = (butacas && r.pax) ? `   Ocupación: ${Math.round((r.pax/butacas)*100)}%` : "";
+    lineas.push(`Origen: ${r.origen || "-"}   Destino: ${r.destino || "-"}   Interno: ${r.interno || "-"}   Pax: ${r.pax || "0"}${ocupacionTxt}`);
+  });
+  else lineas.push("No subieron vehículos.");
+  lineas.push("");
+
+  lineas.push("CROSSDOCKING");
+  if (crossdocking.length) crossdocking.forEach(r => lineas.push(`Origen: ${r.origen || "-"}   Destino: ${r.destino || "-"}   Interno: ${r.interno || "-"}`));
+  else lineas.push("Sin crossdocking.");
+  lineas.push("");
+
+  lineas.push("VEHÍCULOS SUPLANTADOS POR RELEVOS");
+  if (relevos.length) relevos.forEach(r => lineas.push(`Titular ${r.titular || "-"} reemplazado por Relevo ${r.relevo || "-"}`));
+  else lineas.push("Sin relevos.");
+  lineas.push("");
+
+  lineas.push("AFECTACIÓN A PERSONAL DE PAE");
+  lineas.push(afectacionPae || "Sin afectación.");
+  lineas.push("");
+
+  lineas.push("TRANSBORDOS POR ROTURA DE UNIDAD");
+  if (transbordos.length) transbordos.forEach(r => lineas.push(`Interno ${r.interno || "-"}${r.detalle ? " — " + r.detalle : ""}`));
+  else lineas.push("Sin transbordos.");
+  lineas.push("");
+
+  lineas.push("ESTADO DE RUTAS Y CAMINOS A YACIMIENTO");
+  lineas.push(`${estadoRutas}${estadoRutasObs ? " — " + estadoRutasObs : ""}`);
+  lineas.push("");
+
+  lineas.push("LLEGADA TARDE DE UNIDAD A DESTINO");
+  if (llegadas.length) llegadas.forEach(r => lineas.push(`Interno ${r.interno || "-"}${r.motivo ? " — " + r.motivo : ""}`));
+  else lineas.push("Sin llegadas tarde.");
+  lineas.push("");
+
+  lineas.push("CAMBIO DE PLANTA");
+  lineas.push(cambioPlanta || "Sin cambios de planta.");
+  lineas.push("");
+
+  lineas.push("VEHÍCULOS AFECTADOS");
+  lineas.push(vehiculosAfectados || "Sin unidades afectadas.");
+  lineas.push("");
+
+  if (coordinador) lineas.push(`Coordinador: ${coordinador}`);
+
+  const contenido = {
+    vehiculos_subieron: subieron,
+    crossdocking: crossdocking,
+    relevos: relevos,
+    afectacion_pae: afectacionPae,
+    transbordos: transbordos,
+    estado_rutas: estadoRutas,
+    estado_rutas_obs: estadoRutasObs,
+    llegadas: llegadas,
+    cambio_planta: cambioPlanta,
+    vehiculos_afectados: vehiculosAfectados
+  };
+
+  return { texto: lineas.join("\n"), fecha, coordinador, contenido };
+}
+
+document.getElementById("btnGenerar").addEventListener("click", () => {
+  const fecha = document.getElementById("f_fecha").value;
+  if (!fecha) { showToast("Ingresá la fecha"); return; }
+  ultimoParte = construirTexto();
+  document.getElementById("preview").textContent = ultimoParte.texto;
+  document.getElementById("cardPreview").style.display = "block";
+  document.getElementById("cardPreview").scrollIntoView({ behavior:"smooth" });
+});
+
+document.getElementById("btnCopiar").addEventListener("click", async () => {
+  if (!ultimoParte) return;
+  await navigator.clipboard.writeText(ultimoParte.texto);
+  showToast("Texto copiado ✓");
+});
+
+document.getElementById("btnPdf").addEventListener("click", () => {
+  if (!ultimoParte) return;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const margin = 48;
+  const maxWidth = pageWidth - margin * 2;
+
+  function dibujarEncabezado() {
+    // Barra navy
+    doc.setFillColor(30, 45, 62);
+    doc.rect(0, 0, pageWidth, 64, "F");
+    // Logo
+    try { doc.addImage(LOGO_BASE64, "PNG", margin, 12, 40, 40); } catch (e) {}
+    // Textos
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.text("RO-P-06-02", margin + 52, 24);
+    doc.setFontSize(13);
+    doc.text("PARTE DE NOVEDADES", margin + 52, 38);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.text("Transporte PAEG — PETROSAR SA", margin + 52, 52);
+    doc.setTextColor(0, 0, 0);
+    return 90; // y inicial debajo del header
+  }
+
+  let y = dibujarEncabezado();
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text(`Fecha: ${fechaFmt(ultimoParte.fecha)}`, margin, y);
+  y += 20;
+
+  const bloques = ultimoParte.texto.split("\n\n").slice(1); // saltea encabezado ya impreso
+  bloques.forEach(bloque => {
+    const [titulo, ...resto] = bloque.split("\n");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    const tituloLines = doc.splitTextToSize(titulo, maxWidth);
+    doc.text(tituloLines, margin, y);
+    y += tituloLines.length * 13 + 3;
+
+    doc.setFont("helvetica", "normal");
+    const lines = doc.splitTextToSize(resto.join("\n"), maxWidth);
+    doc.text(lines, margin, y);
+    y += lines.length * 13 + 12;
+
+    if (y > 760) { doc.addPage(); y = dibujarEncabezado() + 10; }
+  });
+
+  doc.save(`parte-transporte-${ultimoParte.fecha}.pdf`);
+});
+
+document.getElementById("btnGuardar").addEventListener("click", async () => {
+  if (!ultimoParte) return;
+  try {
+    await sbFetch(TABLE, {
+      method: "POST",
+      body: JSON.stringify({
+        fecha: ultimoParte.fecha,
+        coordinador: ultimoParte.coordinador || null,
+        texto: ultimoParte.texto,
+        contenido: ultimoParte.contenido
+      })
+    });
+    showToast("Guardado en historial ✓");
+    await cargarTodo();
+    document.getElementById("cardPreview").style.display = "none";
+  } catch (e) {
+    showToast("Error al guardar");
+    console.error(e);
+  }
+});
+
+// =========================================================
+// HISTORIAL + MEMORIA DE INTERNOS + ESTADÍSTICAS
+// =========================================================
+let registros = [];
+let formularioInicializado = false;
+
+async function cargarTodo() {
+  try {
+    registros = await sbFetch(`${TABLE}?select=*&order=fecha.desc&limit=500`);
+  } catch (e) {
+    console.error(e);
+    registros = [];
+  }
+  // memoria de internos (titular/relevo) para los desplegables
+  const set = new Set();
+  registros.forEach(r => {
+    (r.contenido?.relevos || []).forEach(rel => {
+      if (rel.titular) set.add(rel.titular);
+      if (rel.relevo) set.add(rel.relevo);
+    });
+  });
+  historicoInternos = Array.from(set).sort();
+  actualizarDatalistInternos();
+
+  if (!formularioInicializado) {
+    inicializarFormulario();
+    formularioInicializado = true;
+  }
+
+  renderHistorial();
+}
+
+function renderHistorial() {
+  const el = document.getElementById("historial");
+  if (!registros.length) { el.innerHTML = `<div class="ps-empty">Todavía no hay partes guardados</div>`; return; }
+  el.innerHTML = registros.slice(0, 30).map(r => `
+    <div class="ps-historial-item">
+      <div class="ps-historial-fecha">${fechaFmt(r.fecha)}</div>
+      <button class="ps-btn ps-btn-outline" style="padding:5px 12px;font-size:12px;" onclick='copiarHistorial(${JSON.stringify(r.texto)})'>Copiar</button>
+    </div>
+  `).join("");
+}
+
+async function copiarHistorial(texto) {
+  await navigator.clipboard.writeText(texto);
+  showToast("Texto copiado ✓");
+}
+
+let chartTransbordosInstance = null;
+let chartPaxInstance = null;
+
+function renderStats() {
+  const mesesTransbordos = {};
+  const mesesPax = {};
+  // datosOcupacion[interno][mes] = { pax, butacas }
+  const datosOcupacion = {};
+
+  registros.forEach(r => {
+    const m = r.fecha.slice(0,7);
+    const cantidadTransbordos = (r.contenido?.transbordos || []).length;
+    mesesTransbordos[m] = (mesesTransbordos[m] || 0) + cantidadTransbordos;
+
+    const vehiculos = r.contenido?.vehiculos_subieron || [];
+    const paxDelParte = vehiculos.reduce((sum, v) => sum + (parseInt(v.pax) || 0), 0);
+    mesesPax[m] = (mesesPax[m] || 0) + paxDelParte;
+
+    vehiculos.forEach(v => {
+      if (!v.interno || !v.pax) return;
+      const butacas = INTERNOS_BUTACAS[v.interno];
+      if (!butacas) return;
+      if (!datosOcupacion[v.interno]) datosOcupacion[v.interno] = {};
+      if (!datosOcupacion[v.interno][m]) datosOcupacion[v.interno][m] = { pax: 0, butacas: 0 };
+      datosOcupacion[v.interno][m].pax += parseInt(v.pax) || 0;
+      datosOcupacion[v.interno][m].butacas += butacas;
+    });
+  });
+
+  const mesesOrdenados = Object.keys(mesesTransbordos).sort();
+  const mesesPaxOrdenados = Object.keys(mesesPax).sort();
+  const totalTransbordos = Object.values(mesesTransbordos).reduce((a,b) => a+b, 0);
+  const totalPax = Object.values(mesesPax).reduce((a,b) => a+b, 0);
+  const mesActual = new Date().toISOString().slice(0,7);
+
+  document.getElementById("statKpis").innerHTML = `
+    <div class="ps-kpi"><div class="ps-kpi-value">${totalTransbordos}</div><div class="ps-kpi-label">Total transbordos</div></div>
+    <div class="ps-kpi"><div class="ps-kpi-value">${mesesTransbordos[mesActual] || 0}</div><div class="ps-kpi-label">Transbordos este mes</div></div>
+    <div class="ps-kpi"><div class="ps-kpi-value">${totalPax}</div><div class="ps-kpi-label">Total Pax transportados</div></div>
+    <div class="ps-kpi"><div class="ps-kpi-value">${mesesPax[mesActual] || 0}</div><div class="ps-kpi-label">Pax este mes</div></div>
+  `;
+
+  // --- Tabla de % ocupación por interno / mes ---
+  const todosLosMeses = new Set();
+  Object.values(datosOcupacion).forEach(porMes => Object.keys(porMes).forEach(m => todosLosMeses.add(m)));
+  const mesesTabla = Array.from(todosLosMeses).sort();
+
+  const thead = document.getElementById("theadOcupacion");
+  const tbody = document.getElementById("tbodyOcupacion");
+
+  if (!mesesTabla.length) {
+    thead.innerHTML = "<th>Interno</th><th>Recorrido</th><th>Sin datos</th>";
+    tbody.innerHTML = `<tr><td colspan="3" class="ps-empty">Todavía no hay Pax cargados</td></tr>`;
+  } else {
+    thead.innerHTML = `<th>Interno</th><th>Recorrido</th>` +
+      mesesTabla.map(m => `<th>${m.slice(5,7)}/${m.slice(2,4)}</th>`).join("") +
+      `<th>Promedio</th>`;
+
+    const internosConDatos = Object.keys(datosOcupacion).sort((a,b) => Number(a) - Number(b));
+
+    tbody.innerHTML = internosConDatos.map(interno => {
+      const info = INTERNOS_INFO[interno];
+      let sumaPaxAnual = 0, sumaButacasAnual = 0;
+      const celdas = mesesTabla.map(m => {
+        const d = datosOcupacion[interno][m];
+        if (!d) return `<td><span class="ps-ocup-cell">—</span></td>`;
+        const pct = Math.round((d.pax/d.butacas)*100);
+        sumaPaxAnual += d.pax;
+        sumaButacasAnual += d.butacas;
+        return `<td><span class="ps-ocup-cell">${pct}%</span></td>`;
+      }).join("");
+      const promedio = sumaButacasAnual ? Math.round((sumaPaxAnual/sumaButacasAnual)*100) : null;
+      return `
+        <tr>
+          <td><strong>${interno}</strong></td>
+          <td class="ps-recorrido-info">${info ? info.od + " · " + info.zona : "-"}</td>
+          ${celdas}
+          <td class="ps-ocup-promedio"><span class="ps-ocup-cell">${promedio !== null ? promedio + "%" : "—"}</span></td>
+        </tr>
+      `;
+    }).join("");
+  }
+
+  // --- Gráficos ---
+  const ctx = document.getElementById("chartTransbordos").getContext("2d");
+  if (chartTransbordosInstance) chartTransbordosInstance.destroy();
+  chartTransbordosInstance = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: mesesOrdenados,
+      datasets: [{ data: mesesOrdenados.map(m => mesesTransbordos[m]), backgroundColor: "#e8a020", borderRadius: 6, label: "Transbordos" }]
+    },
+    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+  });
+
+  const ctxPax = document.getElementById("chartPax").getContext("2d");
+  if (chartPaxInstance) chartPaxInstance.destroy();
+  chartPaxInstance = new Chart(ctxPax, {
+    type: "bar",
+    data: {
+      labels: mesesPaxOrdenados,
+      datasets: [{ data: mesesPaxOrdenados.map(m => mesesPax[m]), backgroundColor: "#1e2d3e", borderRadius: 6, label: "Pax" }]
+    },
+    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+  });
+}
+
+cargarTodo();
+</script>
+</body>
+</html>
