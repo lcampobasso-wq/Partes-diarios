@@ -315,6 +315,10 @@ document.getElementById("dl_internos_fijos").innerHTML =
 
 const INTERNOS_INFO = {"993":{"od":"CR- CD","zona":"Centro-Loma"},"994":{"od":"CR- CD","zona":"Centro-Loma"},"995":{"od":"CR- CD","zona":"Periferia"},"907":{"od":"CR- CD","zona":"Periferia"},"841":{"od":"CR- CD","zona":"Zona Norte"},"842":{"od":"CR- CD","zona":"Zona Norte"},"845":{"od":"CR- CD","zona":"Zona Norte"},"850":{"od":"CR- CD","zona":"Zona Norte"},"855":{"od":"CR- CD","zona":"Zona Norte"},"856":{"od":"CR- CD","zona":"Zona Norte"},"843":{"od":"CR- CD","zona":"Arenales"},"932":{"od":"RT-CD","zona":"VH - Medanos"},"953":{"od":"RT-CD","zona":"VH - ZN"},"941":{"od":"CR-TP","zona":"TP - Laprida"},"942":{"od":"CR-CD","zona":"TP - Km5"},"943":{"od":"CR-CD","zona":"TP - Palazzo"},"944":{"od":"CR-CD","zona":"TP - Comodoro"},"880":{"od":"RT-CD","zona":"Rada Tilly"},"874":{"od":"RT-CD","zona":"Rada Tilly"},"875":{"od":"CR-CD","zona":"Periferia"},"876":{"od":"CR-CD","zona":"Periferia"},"891":{"od":"STO-CD","zona":"Sarmiento"},"877":{"od":"CR-VH","zona":"Loma - Periferia"},"879":{"od":"CR-OR","zona":"Loma - Periferia"},"881":{"od":"RT-OR","zona":"Periferia"},"882":{"od":"CR-CD","zona":"Periferia"},"888":{"od":"STO-D2 y D3","zona":"Sarmiento"},"908":{"od":"STO-Oriental","zona":"Sarmiento"}};
 
+// Internos que son crossdocking de forma fija — no depende de en qué sección del
+// formulario se haya cargado el Pax ese día, siempre se clasifican acá para estadísticas.
+const CROSSDOCKING_INTERNOS = new Set(["993","994","995","907","841","842","845","850","855","856","843","932","953","941","942","943","944"]);
+
 document.getElementById("f_fecha").valueAsDate = new Date();
 
 const LOGO_BASE64 = document.querySelector(".ps-header img").src;
@@ -932,13 +936,18 @@ function renderStats() {
     const cantidadTransbordos = (r.contenido?.transbordos || []).length;
     mesesTransbordos[m] = (mesesTransbordos[m] || 0) + cantidadTransbordos;
 
-    const vehiculos = r.contenido?.vehiculos_subieron || [];
-    const cross = r.contenido?.crossdocking || [];
-    const paxDelParte = [...vehiculos, ...cross].reduce((sum, v) => sum + (parseInt(v.pax) || 0), 0);
+    // Se juntan ambas secciones del formulario y se reclasifican según la lista fija
+    // de internos de crossdocking — así un interno siempre cae en la misma tabla,
+    // sin importar en qué casillero lo haya cargado el coordinador ese día.
+    const todasLasEntradas = [...(r.contenido?.vehiculos_subieron || []), ...(r.contenido?.crossdocking || [])];
+    const paxDelParte = todasLasEntradas.reduce((sum, v) => sum + (parseInt(v.pax) || 0), 0);
     mesesPax[m] = (mesesPax[m] || 0) + paxDelParte;
 
-    acumular(vehiculos, datosOcupacionVehiculos, datosDiaVehiculos, m, dia, esHistorico);
-    acumular(cross, datosOcupacionCross, datosDiaCross, m, dia, esHistorico);
+    const entradasVehiculos = todasLasEntradas.filter(v => !CROSSDOCKING_INTERNOS.has(v.interno));
+    const entradasCross = todasLasEntradas.filter(v => CROSSDOCKING_INTERNOS.has(v.interno));
+
+    acumular(entradasVehiculos, datosOcupacionVehiculos, datosDiaVehiculos, m, dia, esHistorico);
+    acumular(entradasCross, datosOcupacionCross, datosDiaCross, m, dia, esHistorico);
   });
 
   const mesesOrdenados = Object.keys(mesesTransbordos).sort();
