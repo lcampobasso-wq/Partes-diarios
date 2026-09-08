@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root {
   --ps-bg:#f0f2f6; --ps-header-bg:#1e2d3e; --ps-header-bg2:#192638;
@@ -68,7 +69,8 @@ textarea.ps-input { resize:vertical; min-height:50px; }
 
 .ps-preview {
   white-space:pre-wrap; background:#fafbfc; border:1px dashed var(--ps-border);
-  border-radius:8px; padding:14px; font-size:13px; font-family:'DM Sans',monospace; line-height:1.5;
+  border-radius:8px; padding:14px; font-size:12.5px; line-height:1.6;
+  font-family: ui-monospace, "SF Mono", "Cascadia Code", "Courier New", monospace;
 }
 
 .ps-historial-item { border-bottom:1px solid #f1f3f6; padding:10px 0; display:flex; justify-content:space-between; align-items:center; gap:10px; }
@@ -83,9 +85,26 @@ textarea.ps-input { resize:vertical; min-height:50px; }
 
 .ps-toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--ps-header-bg); color:#fff; padding:11px 18px; border-radius:10px; font-size:13px; font-weight:600; display:none; z-index:99; }
 
-.ps-ocup-cell { text-align:center; font-weight:600; padding:4px 6px; font-size:12px; }
-.ps-table td.ps-ocup-promedio { font-weight:800; background:#f0f2f6; }
-.ps-recorrido-info { font-size:11px; color:var(--ps-muted); }
+.ps-table-wrap { overflow-x:auto; border:1px solid var(--ps-border); border-radius:10px; }
+.ps-table { width:100%; border-collapse:collapse; font-size:13px; }
+.ps-table thead th {
+  text-align:center; padding:12px 14px; font-size:10px; font-weight:600; text-transform:uppercase;
+  letter-spacing:.04em; color:var(--ps-muted); background:#fafbfc; border-bottom:1px solid var(--ps-border);
+  white-space:nowrap;
+}
+.ps-table thead th:first-child, .ps-table thead th:nth-child(2) { text-align:left; }
+.ps-table tbody td {
+  padding:11px 14px; border-bottom:1px solid #f1f3f6; color:var(--ps-text); vertical-align:middle;
+}
+.ps-table tbody tr:last-child td { border-bottom:none; }
+.ps-table tbody tr:nth-child(even) { background:#fafbfc; }
+.ps-table tbody tr:hover { background:#f5f7fa; }
+.ps-table tbody td:first-child { font-weight:600; color:var(--ps-header-bg); white-space:nowrap; }
+
+.ps-ocup-cell { display:block; text-align:center; font-weight:500; font-variant-numeric:tabular-nums; color:var(--ps-text); }
+.ps-table td.ps-ocup-promedio { border-left:1px solid var(--ps-border); }
+.ps-table td.ps-ocup-promedio .ps-ocup-cell { font-weight:700; color:var(--ps-header-bg); }
+.ps-recorrido-info { font-size:12px; color:var(--ps-muted); font-weight:400; white-space:nowrap; }
 </style>
 </head>
 <body>
@@ -201,18 +220,55 @@ textarea.ps-input { resize:vertical; min-height:50px; }
   <!-- VISTA: ESTADISTICAS -->
   <section class="ps-view" id="view-stats">
     <div class="ps-kpi-grid" id="statKpis"></div>
+
     <div class="ps-content-card">
-      <div class="ps-content-card-title">% Ocupación por recorrido — mes a mes</div>
+      <div class="ps-content-card-title" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>Vehículos — % Ocupación por recorrido — mes a mes</span>
+        <button class="ps-btn ps-btn-outline" style="padding:6px 12px;font-size:12px;" id="btnExportOcupacionVehiculos">Descargar Excel</button>
+      </div>
       <div class="ps-table-wrap">
-        <table class="ps-table" id="tablaOcupacion">
-          <thead><tr id="theadOcupacion"></tr></thead>
-          <tbody id="tbodyOcupacion"></tbody>
+        <table class="ps-table" id="tablaOcupacionVehiculos">
+          <thead><tr id="theadOcupacionVehiculos"></tr></thead>
+          <tbody id="tbodyOcupacionVehiculos"></tbody>
         </table>
       </div>
     </div>
     <div class="ps-content-card">
-      <div class="ps-content-card-title">Pasajeros transportados a yacimiento — mes a mes</div>
-      <canvas id="chartPax" height="220"></canvas>
+      <div class="ps-content-card-title" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>Crossdocking — % Ocupación por recorrido — mes a mes</span>
+        <button class="ps-btn ps-btn-outline" style="padding:6px 12px;font-size:12px;" id="btnExportOcupacionCrossdocking">Descargar Excel</button>
+      </div>
+      <div class="ps-table-wrap">
+        <table class="ps-table" id="tablaOcupacionCrossdocking">
+          <thead><tr id="theadOcupacionCrossdocking"></tr></thead>
+          <tbody id="tbodyOcupacionCrossdocking"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="ps-content-card">
+      <div class="ps-content-card-title" style="display:flex;justify-content:space-between;align-items:center;">
+        <span id="tituloOcupacionMesVehiculos">Vehículos — Ocupación del mes en curso</span>
+        <button class="ps-btn ps-btn-outline" style="padding:6px 12px;font-size:12px;" id="btnExportOcupacionMesVehiculos">Descargar Excel</button>
+      </div>
+      <div class="ps-table-wrap">
+        <table class="ps-table" id="tablaOcupacionMesVehiculos">
+          <thead><tr id="theadOcupacionMesVehiculos"></tr></thead>
+          <tbody id="tbodyOcupacionMesVehiculos"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="ps-content-card">
+      <div class="ps-content-card-title" style="display:flex;justify-content:space-between;align-items:center;">
+        <span id="tituloOcupacionMesCrossdocking">Crossdocking — Ocupación del mes en curso</span>
+        <button class="ps-btn ps-btn-outline" style="padding:6px 12px;font-size:12px;" id="btnExportOcupacionMesCrossdocking">Descargar Excel</button>
+      </div>
+      <div class="ps-table-wrap">
+        <table class="ps-table" id="tablaOcupacionMesCrossdocking">
+          <thead><tr id="theadOcupacionMesCrossdocking"></tr></thead>
+          <tbody id="tbodyOcupacionMesCrossdocking"></tbody>
+        </table>
+      </div>
     </div>
     <div class="ps-content-card">
       <div class="ps-content-card-title">Transbordos por rotura de unidad — mes a mes</div>
@@ -226,6 +282,19 @@ textarea.ps-input { resize:vertical; min-height:50px; }
 
 <datalist id="dl_internos"></datalist>
 <datalist id="dl_internos_fijos"></datalist>
+<datalist id="dl_origenes">
+  <option value="Comodoro"></option>
+  <option value="Rada Tilly"></option>
+  <option value="Sarmiento"></option>
+</datalist>
+<datalist id="dl_destinos">
+  <option value="CD"></option>
+  <option value="TP"></option>
+  <option value="VH"></option>
+  <option value="OR"></option>
+  <option value="AG"></option>
+  <option value="RES"></option>
+</datalist>
 
 <div class="ps-toast" id="toast"></div>
 
@@ -238,13 +307,13 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const TABLE = "partes_diarios";
 
 // Lista fija de internos y su capacidad de butacas (actualizada, hoja "Enero Diciembre 2026")
-const INTERNOS_BUTACAS = {"993":19,"994":19,"995":19,"907":19,"841":19,"842":19,"845":19,"850":19,"857":19,"856":19,"843":19,"932":19,"953":19,"941":19,"942":19,"943":19,"944":19,"880":44,"874":44,"875":44,"876":44,"891":19,"877":44,"879":44,"881":44,"882":44,"888":19,"908":19};
+const INTERNOS_BUTACAS = {"993":19,"994":19,"995":19,"907":19,"841":19,"842":19,"845":19,"850":19,"855":19,"856":19,"843":19,"932":19,"953":19,"941":19,"942":19,"943":19,"944":19,"880":44,"874":44,"875":44,"876":44,"891":19,"877":44,"879":44,"881":44,"882":44,"888":19,"908":19};
 const INTERNOS_ORDENADOS = Object.keys(INTERNOS_BUTACAS).sort((a,b) => Number(a) - Number(b));
 
 document.getElementById("dl_internos_fijos").innerHTML =
   INTERNOS_ORDENADOS.map(i => `<option value="${i}" label="${i} (${INTERNOS_BUTACAS[i]} but.)"></option>`).join("");
 
-const INTERNOS_INFO = {"993":{"od":"CR- CD","zona":"Centro-Loma"},"994":{"od":"CR- CD","zona":"Centro-Loma"},"995":{"od":"CR- CD","zona":"Periferia"},"907":{"od":"CR- CD","zona":"Periferia"},"841":{"od":"CR- CD","zona":"Zona Norte"},"842":{"od":"CR- CD","zona":"Zona Norte"},"845":{"od":"CR- CD","zona":"Zona Norte"},"850":{"od":"CR- CD","zona":"Zona Norte"},"857":{"od":"CR- CD","zona":"Zona Norte"},"856":{"od":"CR- CD","zona":"Zona Norte"},"843":{"od":"CR- CD","zona":"Arenales"},"932":{"od":"RT-CD","zona":"VH - Medanos"},"953":{"od":"RT-CD","zona":"VH - ZN"},"941":{"od":"CR-TP","zona":"TP - Laprida"},"942":{"od":"CR-CD","zona":"TP - Km5"},"943":{"od":"CR-CD","zona":"TP - Palazzo"},"944":{"od":"CR-CD","zona":"TP - Comodoro"},"880":{"od":"RT-CD","zona":"Rada Tilly"},"874":{"od":"RT-CD","zona":"Rada Tilly"},"875":{"od":"CR-CD","zona":"Periferia"},"876":{"od":"CR-CD","zona":"Periferia"},"891":{"od":"STO-CD","zona":"Sarmiento"},"877":{"od":"CR-VH","zona":"Loma - Periferia"},"879":{"od":"CR-OR","zona":"Loma - Periferia"},"881":{"od":"RT-OR","zona":"Periferia"},"882":{"od":"CR-CD","zona":"Periferia"},"888":{"od":"STO-D2 y D3","zona":"Sarmiento"},"908":{"od":"STO-Oriental","zona":"Sarmiento"}};
+const INTERNOS_INFO = {"993":{"od":"CR- CD","zona":"Centro-Loma"},"994":{"od":"CR- CD","zona":"Centro-Loma"},"995":{"od":"CR- CD","zona":"Periferia"},"907":{"od":"CR- CD","zona":"Periferia"},"841":{"od":"CR- CD","zona":"Zona Norte"},"842":{"od":"CR- CD","zona":"Zona Norte"},"845":{"od":"CR- CD","zona":"Zona Norte"},"850":{"od":"CR- CD","zona":"Zona Norte"},"855":{"od":"CR- CD","zona":"Zona Norte"},"856":{"od":"CR- CD","zona":"Zona Norte"},"843":{"od":"CR- CD","zona":"Arenales"},"932":{"od":"RT-CD","zona":"VH - Medanos"},"953":{"od":"RT-CD","zona":"VH - ZN"},"941":{"od":"CR-TP","zona":"TP - Laprida"},"942":{"od":"CR-CD","zona":"TP - Km5"},"943":{"od":"CR-CD","zona":"TP - Palazzo"},"944":{"od":"CR-CD","zona":"TP - Comodoro"},"880":{"od":"RT-CD","zona":"Rada Tilly"},"874":{"od":"RT-CD","zona":"Rada Tilly"},"875":{"od":"CR-CD","zona":"Periferia"},"876":{"od":"CR-CD","zona":"Periferia"},"891":{"od":"STO-CD","zona":"Sarmiento"},"877":{"od":"CR-VH","zona":"Loma - Periferia"},"879":{"od":"CR-OR","zona":"Loma - Periferia"},"881":{"od":"RT-OR","zona":"Periferia"},"882":{"od":"CR-CD","zona":"Periferia"},"888":{"od":"STO-D2 y D3","zona":"Sarmiento"},"908":{"od":"STO-Oriental","zona":"Sarmiento"}};
 
 document.getElementById("f_fecha").valueAsDate = new Date();
 
@@ -331,24 +400,17 @@ document.getElementById("btnAddSubieron").addEventListener("click", () => addSub
 // -- Crossdocking: Origen | Destino | Interno --
 let crossdockingRows = [];
 function addCrossdockingRow(data = {}) {
-  crossdockingRows.push({ id: Date.now() + Math.random(), origen: data.origen || "", destino: data.destino || "", interno: data.interno || "" });
+  crossdockingRows.push({ id: Date.now() + Math.random(), origen: data.origen || "", destino: data.destino || "", interno: data.interno || "", pax: data.pax || "" });
   renderCrossdocking();
 }
 function renderCrossdocking() {
   const el = document.getElementById("rows_crossdocking");
-  const ORIGENES = ["Comodoro", "Rada Tilly", "Sarmiento"];
-  const DESTINOS = ["CD", "TP", "VH", "OR", "AG", "RES"];
   el.innerHTML = crossdockingRows.map(r => `
-    <div class="ps-row ps-row-3">
-      <select class="ps-input" onchange="updateCrossdocking('${r.id}','origen',this.value)">
-        <option value="">Origen</option>
-        ${ORIGENES.map(o => `<option value="${o}" ${r.origen === o ? "selected" : ""}>${o}</option>`).join("")}
-      </select>
-      <select class="ps-input" onchange="updateCrossdocking('${r.id}','destino',this.value)">
-        <option value="">Destino</option>
-        ${DESTINOS.map(d => `<option value="${d}" ${r.destino === d ? "selected" : ""}>${d}</option>`).join("")}
-      </select>
+    <div class="ps-row ps-row-4">
+      <input type="text" class="ps-input" list="dl_origenes" placeholder="Origen" value="${r.origen}" oninput="updateCrossdocking('${r.id}','origen',this.value)">
+      <input type="text" class="ps-input" list="dl_destinos" placeholder="Destino" value="${r.destino}" oninput="updateCrossdocking('${r.id}','destino',this.value)">
       <input type="text" class="ps-input" list="dl_internos_fijos" placeholder="Interno" value="${r.interno}" oninput="updateCrossdocking('${r.id}','interno',this.value)">
+      <input type="number" min="0" class="ps-input" placeholder="Pax" value="${r.pax}" oninput="updateCrossdocking('${r.id}','pax',this.value)">
       <button class="ps-row-del" onclick="removeCrossdocking('${r.id}')">✕</button>
     </div>
   `).join("");
@@ -470,7 +532,7 @@ function inicializarFormulario() {
   }
 
   if (crossdockingPrevios.length) {
-    crossdockingPrevios.forEach(r => addCrossdockingRow({ origen: r.origen, destino: r.destino, interno: r.interno }));
+    crossdockingPrevios.forEach(r => addCrossdockingRow({ origen: r.origen, destino: r.destino, interno: r.interno, pax: "" }));
   } else {
     addCrossdockingRow();
   }
@@ -480,6 +542,11 @@ function inicializarFormulario() {
 // GENERAR TEXTO / PDF / GUARDAR
 // =========================================================
 let ultimoParte = null;
+
+function campo(label, valor, ancho) {
+  const texto = label + (valor || "-");
+  return texto.length >= ancho ? texto + "  " : texto.padEnd(ancho, " ");
+}
 
 function construirTexto() {
   const fecha = document.getElementById("f_fecha").value;
@@ -504,14 +571,30 @@ function construirTexto() {
   lineas.push("VEHÍCULOS QUE SUBIERON A YACIMIENTO");
   if (subieron.length) subieron.forEach(r => {
     const butacas = INTERNOS_BUTACAS[r.interno];
-    const ocupacionTxt = (butacas && r.pax) ? `   Ocupación: ${Math.round((r.pax/butacas)*100)}%` : "";
-    lineas.push(`Origen: ${r.origen || "-"}   Destino: ${r.destino || "-"}   Interno: ${r.interno || "-"}   Pax: ${r.pax || "0"}${ocupacionTxt}`);
+    const ocupacionTxt = (butacas && r.pax) ? `Ocupación: ${Math.round((r.pax/butacas)*100)}%` : "";
+    lineas.push(
+      campo("Origen: ", r.origen, 20) +
+      campo("Destino: ", r.destino, 14) +
+      campo("Interno: ", r.interno, 14) +
+      campo("Pax: ", r.pax || "0", 8) +
+      ocupacionTxt
+    );
   });
   else lineas.push("No subieron vehículos.");
   lineas.push("");
 
   lineas.push("CROSSDOCKING");
-  if (crossdocking.length) crossdocking.forEach(r => lineas.push(`Origen: ${r.origen || "-"}   Destino: ${r.destino || "-"}   Interno: ${r.interno || "-"}`));
+  if (crossdocking.length) crossdocking.forEach(r => {
+    const butacas = INTERNOS_BUTACAS[r.interno];
+    const ocupacionTxt = (butacas && r.pax) ? `Ocupación: ${Math.round((r.pax/butacas)*100)}%` : "";
+    lineas.push(
+      campo("Origen: ", r.origen, 20) +
+      campo("Destino: ", r.destino, 20) +
+      campo("Interno: ", r.interno, 14) +
+      campo("Pax: ", r.pax || "0", 8) +
+      ocupacionTxt
+    );
+  });
   else lineas.push("Sin crossdocking.");
   lineas.push("");
 
@@ -616,16 +699,28 @@ document.getElementById("btnPdf").addEventListener("click", () => {
   const bloques = ultimoParte.texto.split("\n\n").slice(1); // saltea encabezado ya impreso
   bloques.forEach(bloque => {
     const [titulo, ...resto] = bloque.split("\n");
+    const esTablaAlineada = titulo === "VEHÍCULOS QUE SUBIERON A YACIMIENTO" || titulo === "CROSSDOCKING";
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
     const tituloLines = doc.splitTextToSize(titulo, maxWidth);
     doc.text(tituloLines, margin, y);
     y += tituloLines.length * 13 + 3;
 
-    doc.setFont("helvetica", "normal");
-    const lines = doc.splitTextToSize(resto.join("\n"), maxWidth);
-    doc.text(lines, margin, y);
-    y += lines.length * 13 + 12;
+    if (esTablaAlineada) {
+      doc.setFont("courier", "normal");
+      doc.setFontSize(8.5);
+      resto.forEach(linea => {
+        doc.text(linea, margin, y);
+        y += 12;
+      });
+      y += 6;
+    } else {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      const lines = doc.splitTextToSize(resto.join("\n"), maxWidth);
+      doc.text(lines, margin, y);
+      y += lines.length * 13 + 12;
+    }
 
     if (y > 760) { doc.addPage(); y = dibujarEncabezado() + 10; }
   });
@@ -703,24 +798,116 @@ async function copiarHistorial(texto) {
 }
 
 let chartTransbordosInstance = null;
-let chartPaxInstance = null;
+
+const MESES_ABREV = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+const NOMBRES_MES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+function labelMes(m) {
+  const anio = m.slice(2,4);
+  const mesNum = Number(m.slice(5,7));
+  return `${MESES_ABREV[mesNum - 1]} ${anio}`;
+}
+
+function renderTablaOcupacionMensual(datosOcupacion, theadId, tbodyId) {
+  const thead = document.getElementById(theadId);
+  const tbody = document.getElementById(tbodyId);
+  const todosLosMeses = new Set();
+  Object.values(datosOcupacion).forEach(porMes => Object.keys(porMes).forEach(m => todosLosMeses.add(m)));
+  const mesesTabla = Array.from(todosLosMeses).sort();
+
+  if (!mesesTabla.length) {
+    thead.innerHTML = "<th>Interno</th><th>Recorrido</th><th>Sin datos</th>";
+    tbody.innerHTML = `<tr><td colspan="3" class="ps-empty">Todavía no hay Pax cargados</td></tr>`;
+    return;
+  }
+  thead.innerHTML = `<th>Interno</th><th>Recorrido</th>` +
+    mesesTabla.map(m => `<th>${labelMes(m)}</th>`).join("") +
+    `<th>Promedio</th>`;
+
+  const internosConDatos = Object.keys(datosOcupacion)
+    .filter(interno => Object.values(datosOcupacion[interno]).some(d => d.butacas > 0))
+    .sort((a,b) => Number(a) - Number(b));
+
+  tbody.innerHTML = internosConDatos.map(interno => {
+    const info = INTERNOS_INFO[interno];
+    let sumaPaxAnual = 0, sumaButacasAnual = 0;
+    const celdas = mesesTabla.map(m => {
+      const d = datosOcupacion[interno][m];
+      if (!d) return `<td><span class="ps-ocup-cell" style="color:var(--ps-border);">—</span></td>`;
+      const pct = Math.round((d.pax/d.butacas)*100);
+      sumaPaxAnual += d.pax;
+      sumaButacasAnual += d.butacas;
+      return `<td><span class="ps-ocup-cell">${pct}%</span></td>`;
+    }).join("");
+    const promedio = sumaButacasAnual ? Math.round((sumaPaxAnual/sumaButacasAnual)*100) : null;
+    return `
+      <tr>
+        <td><strong>${interno}</strong></td>
+        <td class="ps-recorrido-info">${info ? info.od + " · " + info.zona : "-"}</td>
+        ${celdas}
+        <td class="ps-ocup-promedio"><span class="ps-ocup-cell">${promedio !== null ? promedio + "%" : "—"}</span></td>
+      </tr>
+    `;
+  }).join("");
+}
+
+function renderTablaOcupacionDiaria(datosDia, theadId, tbodyId) {
+  const theadDia = document.getElementById(theadId);
+  const tbodyDia = document.getElementById(tbodyId);
+  const diasConDatos = new Set();
+  Object.values(datosDia).forEach(porDia => Object.keys(porDia).forEach(d => diasConDatos.add(d)));
+  const diasOrdenados = Array.from(diasConDatos).sort();
+
+  if (!diasOrdenados.length) {
+    theadDia.innerHTML = "<th>Interno</th><th>Recorrido</th><th>Sin datos</th>";
+    tbodyDia.innerHTML = `<tr><td colspan="3" class="ps-empty">Todavía no hay partes cargados este mes</td></tr>`;
+    return;
+  }
+  theadDia.innerHTML = `<th>Interno</th><th>Recorrido</th>` +
+    diasOrdenados.map(d => `<th>${Number(d)}</th>`).join("") +
+    `<th>Promedio</th><th>% Ocup.</th>`;
+
+  const internosDelMes = Object.keys(datosDia)
+    .filter(interno => Object.values(datosDia[interno]).some(pax => pax !== undefined))
+    .sort((a,b) => Number(a) - Number(b));
+
+  tbodyDia.innerHTML = internosDelMes.map(interno => {
+    const info = INTERNOS_INFO[interno];
+    const butacas = INTERNOS_BUTACAS[interno];
+    let sumaPax = 0, cantidadDias = 0;
+    const celdas = diasOrdenados.map(d => {
+      const pax = datosDia[interno][d];
+      if (pax === undefined) return `<td><span class="ps-ocup-cell" style="color:var(--ps-border);">—</span></td>`;
+      sumaPax += pax;
+      cantidadDias += 1;
+      return `<td><span class="ps-ocup-cell">${pax}</span></td>`;
+    }).join("");
+    const promedio = cantidadDias ? (sumaPax/cantidadDias) : null;
+    const pctOcup = (promedio !== null && butacas) ? Math.round((promedio/butacas)*100) : null;
+    return `
+      <tr>
+        <td><strong>${interno}</strong></td>
+        <td class="ps-recorrido-info">${info ? info.od + " · " + info.zona : "-"}</td>
+        ${celdas}
+        <td class="ps-ocup-promedio"><span class="ps-ocup-cell">${promedio !== null ? promedio.toFixed(1) : "—"}</span></td>
+        <td class="ps-ocup-promedio"><span class="ps-ocup-cell">${pctOcup !== null ? pctOcup + "%" : "—"}</span></td>
+      </tr>
+    `;
+  }).join("");
+}
 
 function renderStats() {
   const mesesTransbordos = {};
   const mesesPax = {};
-  // datosOcupacion[interno][mes] = { pax, butacas }
-  const datosOcupacion = {};
+  // datosOcupacionVehiculos/Crossdocking[interno][mes] = { pax, butacas }
+  const datosOcupacionVehiculos = {};
+  const datosOcupacionCross = {};
+  const mesActual = new Date().toISOString().slice(0,7);
+  // datosDiaVehiculos/Crossdocking[interno][dia] = pax (solo para el mes en curso)
+  const datosDiaVehiculos = {};
+  const datosDiaCross = {};
 
-  registros.forEach(r => {
-    const m = r.fecha.slice(0,7);
-    const cantidadTransbordos = (r.contenido?.transbordos || []).length;
-    mesesTransbordos[m] = (mesesTransbordos[m] || 0) + cantidadTransbordos;
-
-    const vehiculos = r.contenido?.vehiculos_subieron || [];
-    const paxDelParte = vehiculos.reduce((sum, v) => sum + (parseInt(v.pax) || 0), 0);
-    mesesPax[m] = (mesesPax[m] || 0) + paxDelParte;
-
-    vehiculos.forEach(v => {
+  function acumular(lista, datosOcupacion, datosDia, m, dia, esHistorico) {
+    lista.forEach(v => {
       if (!v.interno || !v.pax) return;
       const butacas = INTERNOS_BUTACAS[v.interno];
       if (!butacas) return;
@@ -728,14 +915,35 @@ function renderStats() {
       if (!datosOcupacion[v.interno][m]) datosOcupacion[v.interno][m] = { pax: 0, butacas: 0 };
       datosOcupacion[v.interno][m].pax += parseInt(v.pax) || 0;
       datosOcupacion[v.interno][m].butacas += butacas;
+
+      // La carga histórica es un promedio mensual disfrazado de un solo día:
+      // no debe mezclarse con partes reales en la planilla diaria.
+      if (m === mesActual && !esHistorico) {
+        if (!datosDia[v.interno]) datosDia[v.interno] = {};
+        datosDia[v.interno][dia] = (datosDia[v.interno][dia] || 0) + (parseInt(v.pax) || 0);
+      }
     });
+  }
+
+  registros.forEach(r => {
+    const m = r.fecha.slice(0,7);
+    const dia = r.fecha.slice(8,10);
+    const esHistorico = r.coordinador === "Carga histórica (Excel)";
+    const cantidadTransbordos = (r.contenido?.transbordos || []).length;
+    mesesTransbordos[m] = (mesesTransbordos[m] || 0) + cantidadTransbordos;
+
+    const vehiculos = r.contenido?.vehiculos_subieron || [];
+    const cross = r.contenido?.crossdocking || [];
+    const paxDelParte = [...vehiculos, ...cross].reduce((sum, v) => sum + (parseInt(v.pax) || 0), 0);
+    mesesPax[m] = (mesesPax[m] || 0) + paxDelParte;
+
+    acumular(vehiculos, datosOcupacionVehiculos, datosDiaVehiculos, m, dia, esHistorico);
+    acumular(cross, datosOcupacionCross, datosDiaCross, m, dia, esHistorico);
   });
 
   const mesesOrdenados = Object.keys(mesesTransbordos).sort();
-  const mesesPaxOrdenados = Object.keys(mesesPax).sort();
   const totalTransbordos = Object.values(mesesTransbordos).reduce((a,b) => a+b, 0);
   const totalPax = Object.values(mesesPax).reduce((a,b) => a+b, 0);
-  const mesActual = new Date().toISOString().slice(0,7);
 
   document.getElementById("statKpis").innerHTML = `
     <div class="ps-kpi"><div class="ps-kpi-value">${totalTransbordos}</div><div class="ps-kpi-label">Total transbordos</div></div>
@@ -744,70 +952,47 @@ function renderStats() {
     <div class="ps-kpi"><div class="ps-kpi-value">${mesesPax[mesActual] || 0}</div><div class="ps-kpi-label">Pax este mes</div></div>
   `;
 
-  // --- Tabla de % ocupación por interno / mes ---
-  const todosLosMeses = new Set();
-  Object.values(datosOcupacion).forEach(porMes => Object.keys(porMes).forEach(m => todosLosMeses.add(m)));
-  const mesesTabla = Array.from(todosLosMeses).sort();
+  renderTablaOcupacionMensual(datosOcupacionVehiculos, "theadOcupacionVehiculos", "tbodyOcupacionVehiculos");
+  renderTablaOcupacionMensual(datosOcupacionCross, "theadOcupacionCrossdocking", "tbodyOcupacionCrossdocking");
 
-  const thead = document.getElementById("theadOcupacion");
-  const tbody = document.getElementById("tbodyOcupacion");
+  const nombreMesActual = NOMBRES_MES[Number(mesActual.slice(5,7)) - 1];
+  document.getElementById("tituloOcupacionMesVehiculos").textContent = `Vehículos — Ocupación de ${nombreMesActual}`;
+  document.getElementById("tituloOcupacionMesCrossdocking").textContent = `Crossdocking — Ocupación de ${nombreMesActual}`;
+  renderTablaOcupacionDiaria(datosDiaVehiculos, "theadOcupacionMesVehiculos", "tbodyOcupacionMesVehiculos");
+  renderTablaOcupacionDiaria(datosDiaCross, "theadOcupacionMesCrossdocking", "tbodyOcupacionMesCrossdocking");
 
-  if (!mesesTabla.length) {
-    thead.innerHTML = "<th>Interno</th><th>Recorrido</th><th>Sin datos</th>";
-    tbody.innerHTML = `<tr><td colspan="3" class="ps-empty">Todavía no hay Pax cargados</td></tr>`;
-  } else {
-    thead.innerHTML = `<th>Interno</th><th>Recorrido</th>` +
-      mesesTabla.map(m => `<th>${m.slice(5,7)}/${m.slice(2,4)}</th>`).join("") +
-      `<th>Promedio</th>`;
-
-    const internosConDatos = Object.keys(datosOcupacion).sort((a,b) => Number(a) - Number(b));
-
-    tbody.innerHTML = internosConDatos.map(interno => {
-      const info = INTERNOS_INFO[interno];
-      let sumaPaxAnual = 0, sumaButacasAnual = 0;
-      const celdas = mesesTabla.map(m => {
-        const d = datosOcupacion[interno][m];
-        if (!d) return `<td><span class="ps-ocup-cell">—</span></td>`;
-        const pct = Math.round((d.pax/d.butacas)*100);
-        sumaPaxAnual += d.pax;
-        sumaButacasAnual += d.butacas;
-        return `<td><span class="ps-ocup-cell">${pct}%</span></td>`;
-      }).join("");
-      const promedio = sumaButacasAnual ? Math.round((sumaPaxAnual/sumaButacasAnual)*100) : null;
-      return `
-        <tr>
-          <td><strong>${interno}</strong></td>
-          <td class="ps-recorrido-info">${info ? info.od + " · " + info.zona : "-"}</td>
-          ${celdas}
-          <td class="ps-ocup-promedio"><span class="ps-ocup-cell">${promedio !== null ? promedio + "%" : "—"}</span></td>
-        </tr>
-      `;
-    }).join("");
-  }
-
-  // --- Gráficos ---
+  // --- Gráfico de transbordos ---
   const ctx = document.getElementById("chartTransbordos").getContext("2d");
   if (chartTransbordosInstance) chartTransbordosInstance.destroy();
   chartTransbordosInstance = new Chart(ctx, {
     type: "bar",
     data: {
-      labels: mesesOrdenados,
+      labels: mesesOrdenados.map(labelMes),
       datasets: [{ data: mesesOrdenados.map(m => mesesTransbordos[m]), backgroundColor: "#e8a020", borderRadius: 6, label: "Transbordos" }]
     },
     options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
   });
-
-  const ctxPax = document.getElementById("chartPax").getContext("2d");
-  if (chartPaxInstance) chartPaxInstance.destroy();
-  chartPaxInstance = new Chart(ctxPax, {
-    type: "bar",
-    data: {
-      labels: mesesPaxOrdenados,
-      datasets: [{ data: mesesPaxOrdenados.map(m => mesesPax[m]), backgroundColor: "#1e2d3e", borderRadius: 6, label: "Pax" }]
-    },
-    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
-  });
 }
+
+function exportarTablaExcel(tableId, nombreArchivo) {
+  const tabla = document.getElementById(tableId);
+  const wb = XLSX.utils.table_to_book(tabla, { raw: false });
+  XLSX.writeFile(wb, nombreArchivo);
+}
+document.getElementById("btnExportOcupacionVehiculos").addEventListener("click", () => {
+  exportarTablaExcel("tablaOcupacionVehiculos", `ocupacion-vehiculos-${new Date().toISOString().slice(0,10)}.xlsx`);
+});
+document.getElementById("btnExportOcupacionCrossdocking").addEventListener("click", () => {
+  exportarTablaExcel("tablaOcupacionCrossdocking", `ocupacion-crossdocking-${new Date().toISOString().slice(0,10)}.xlsx`);
+});
+document.getElementById("btnExportOcupacionMesVehiculos").addEventListener("click", () => {
+  const mesActual = new Date().toISOString().slice(0,7);
+  exportarTablaExcel("tablaOcupacionMesVehiculos", `ocupacion-diaria-vehiculos-${mesActual}.xlsx`);
+});
+document.getElementById("btnExportOcupacionMesCrossdocking").addEventListener("click", () => {
+  const mesActual = new Date().toISOString().slice(0,7);
+  exportarTablaExcel("tablaOcupacionMesCrossdocking", `ocupacion-diaria-crossdocking-${mesActual}.xlsx`);
+});
 
 cargarTodo();
 </script>
