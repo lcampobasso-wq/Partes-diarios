@@ -790,8 +790,11 @@ function renderHistorial() {
   if (!registros.length) { el.innerHTML = `<div class="ps-empty">Todavía no hay partes guardados</div>`; return; }
   el.innerHTML = registros.slice(0, 30).map(r => `
     <div class="ps-historial-item">
-      <div class="ps-historial-fecha">${fechaFmt(r.fecha)}</div>
-      <button class="ps-btn ps-btn-outline" style="padding:5px 12px;font-size:12px;" onclick='copiarHistorial(${JSON.stringify(r.texto)})'>Copiar</button>
+      <div class="ps-historial-fecha">${fechaFmt(r.fecha)}${r.coordinador ? " — " + r.coordinador : ""}</div>
+      <div style="display:flex;gap:6px;">
+        <button class="ps-btn ps-btn-outline" style="padding:5px 12px;font-size:12px;" onclick='copiarHistorial(${JSON.stringify(r.texto)})'>Copiar</button>
+        <button class="ps-btn ps-btn-outline" style="padding:5px 12px;font-size:12px;color:#c53030;" onclick="borrarParte('${r.id}')">Borrar</button>
+      </div>
     </div>
   `).join("");
 }
@@ -799,6 +802,18 @@ function renderHistorial() {
 async function copiarHistorial(texto) {
   await navigator.clipboard.writeText(texto);
   showToast("Texto copiado ✓");
+}
+
+async function borrarParte(id) {
+  if (!confirm("¿Borrar este parte del historial? Esta acción no se puede deshacer.")) return;
+  try {
+    await sbFetch(`${TABLE}?id=eq.${id}`, { method: "DELETE", prefer: "return=minimal" });
+    showToast("Parte borrado ✓");
+    await cargarTodo();
+  } catch (e) {
+    showToast("Error al borrar");
+    console.error(e);
+  }
 }
 
 let chartTransbordosInstance = null;
