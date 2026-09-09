@@ -88,18 +88,27 @@ textarea.ps-input { resize:vertical; min-height:50px; }
 .ps-table-wrap { overflow-x:auto; border:1px solid var(--ps-border); border-radius:10px; }
 .ps-table { width:100%; border-collapse:collapse; font-size:13px; }
 .ps-table thead th {
-  text-align:center; padding:12px 14px; font-size:10px; font-weight:600; text-transform:uppercase;
+  text-align:center; padding:12px 10px; font-size:10px; font-weight:600; text-transform:uppercase;
   letter-spacing:.04em; color:var(--ps-muted); background:#fafbfc; border-bottom:1px solid var(--ps-border);
   white-space:nowrap;
 }
 .ps-table thead th:first-child, .ps-table thead th:nth-child(2) { text-align:left; }
 .ps-table tbody td {
-  padding:11px 14px; border-bottom:1px solid #f1f3f6; color:var(--ps-text); vertical-align:middle;
+  padding:11px 10px; border-bottom:1px solid #f1f3f6; color:var(--ps-text); vertical-align:middle;
 }
 .ps-table tbody tr:last-child td { border-bottom:none; }
 .ps-table tbody tr:nth-child(even) { background:#fafbfc; }
 .ps-table tbody tr:hover { background:#f5f7fa; }
 .ps-table tbody td:first-child { font-weight:600; color:var(--ps-header-bg); white-space:nowrap; }
+
+/* Primera columna fija al scrollear horizontalmente, para no perder de vista qué fila es */
+.ps-table th:first-child, .ps-table td:first-child {
+  position:sticky; left:0; z-index:2; background:#fff;
+  box-shadow:2px 0 4px -2px rgba(0,0,0,.10);
+}
+.ps-table thead th:first-child { background:#fafbfc; z-index:3; }
+.ps-table tbody tr:nth-child(even) td:first-child { background:#fafbfc; }
+.ps-table tbody tr:hover td:first-child { background:#f5f7fa; }
 
 .ps-ocup-cell { display:block; text-align:center; font-weight:500; font-variant-numeric:tabular-nums; color:var(--ps-text); }
 .ps-table td.ps-ocup-promedio { border-left:1px solid var(--ps-border); background:#fdf1da; }
@@ -123,6 +132,7 @@ textarea.ps-input { resize:vertical; min-height:50px; }
 <div class="ps-tabs">
   <button class="ps-tab active" data-view="parte">📝 Parte diario</button>
   <button class="ps-tab" data-view="stats">📊 Estadísticas</button>
+  <button class="ps-tab" data-view="evolucion">📈 Evolución</button>
 </div>
 
 <main class="ps-main">
@@ -280,7 +290,76 @@ textarea.ps-input { resize:vertical; min-height:50px; }
     </div>
   </section>
 
+  <!-- VISTA: EVOLUCION -->
+  <section class="ps-view" id="view-evolucion">
+    <div class="ps-evo-top">
+      <div class="ps-evo-promedio-card">
+        <div class="ps-evo-promedio-label">Ocupación promedio</div>
+        <div class="ps-evo-promedio-value" id="evoPromedioGrande">—</div>
+        <div class="ps-evo-promedio-sub" id="evoPromedioSub"></div>
+      </div>
+      <div class="ps-evo-mini-card">
+        <div class="ps-evo-mini-label">Mayor suba</div>
+        <div class="ps-evo-mini-body" id="evoMayorSuba">—</div>
+      </div>
+      <div class="ps-evo-mini-card">
+        <div class="ps-evo-mini-label">Mayor caída</div>
+        <div class="ps-evo-mini-body" id="evoMayorCaida">—</div>
+      </div>
+    </div>
+
+    <div class="ps-content-card">
+      <div class="ps-content-card-title" id="evoTituloMesActual">Evolución en el mes en curso (día a día)</div>
+      <div class="ps-evo-grid" id="evoGrid"></div>
+    </div>
+
+    <div class="ps-content-card">
+      <div class="ps-content-card-title" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>Evolución en el año (mes a mes)</span>
+        <button class="ps-btn ps-btn-outline" style="padding:6px 12px;font-size:12px;" id="btnExportEvolucion">Descargar Excel</button>
+      </div>
+      <div class="ps-table-wrap">
+        <table class="ps-table" id="tablaEvolucion">
+          <thead><tr id="theadEvolucion"></tr></thead>
+          <tbody id="tbodyEvolucion"></tbody>
+        </table>
+      </div>
+      <div class="ps-evo-leyenda">
+        <span>Menor ocupación</span>
+        <div class="ps-evo-leyenda-barra"></div>
+        <span>Mayor ocupación</span>
+      </div>
+    </div>
+  </section>
+
 </main>
+
+<style>
+.ps-evo-top { display:grid; grid-template-columns: 1.4fr 1fr 1fr; gap:12px; margin-bottom:16px; }
+@media (max-width:650px) { .ps-evo-top { grid-template-columns: 1fr; } }
+.ps-evo-promedio-card, .ps-evo-mini-card {
+  background:#fff; border:1px solid var(--ps-border); border-radius:12px; padding:16px;
+}
+.ps-evo-promedio-label, .ps-evo-mini-label {
+  font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--ps-muted); font-weight:600;
+}
+.ps-evo-promedio-value { font-family:'Poppins',sans-serif; font-weight:800; font-size:34px; color:var(--ps-header-bg); margin-top:4px; }
+.ps-evo-promedio-sub { font-size:12px; color:var(--ps-muted); margin-top:2px; }
+.ps-evo-mini-body { margin-top:8px; }
+.ps-evo-mini-interno { font-family:'Poppins',sans-serif; font-weight:700; font-size:15px; }
+.ps-evo-mini-recorrido { font-size:11px; color:var(--ps-muted); margin:2px 0 6px; }
+.ps-evo-mini-diff { font-weight:700; font-size:14px; }
+
+.ps-evo-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap:10px; }
+.ps-evo-card { border:1px solid var(--ps-border); border-radius:10px; padding:10px 12px; }
+.ps-evo-card-pct { font-family:'Poppins',sans-serif; font-weight:800; font-size:18px; color:var(--ps-header-bg); }
+.ps-evo-card-nombre { font-size:11px; color:var(--ps-header-bg); font-weight:600; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ps-evo-card-dias { font-size:10px; color:var(--ps-muted); margin-bottom:4px; }
+.ps-evo-card canvas { width:100% !important; height:38px !important; }
+
+.ps-evo-leyenda { display:flex; align-items:center; gap:8px; margin-top:12px; font-size:11px; color:var(--ps-muted); }
+.ps-evo-leyenda-barra { flex:0 0 140px; height:10px; border-radius:5px; background:linear-gradient(90deg, hsl(0,65%,82%), hsl(65,65%,82%), hsl(130,65%,82%)); }
+</style>
 
 </div>
 
@@ -362,6 +441,7 @@ document.querySelectorAll(".ps-tab").forEach(tab => {
     tab.classList.add("active");
     document.getElementById("view-" + tab.dataset.view).classList.add("active");
     if (tab.dataset.view === "stats") renderStats();
+    if (tab.dataset.view === "evolucion") renderEvolucion();
   });
 });
 
@@ -1081,6 +1161,184 @@ document.getElementById("btnExportOcupacionMesVehiculos").addEventListener("clic
 document.getElementById("btnExportOcupacionMesCrossdocking").addEventListener("click", () => {
   const mesActual = new Date().toISOString().slice(0,7);
   exportarTablaExcel("tablaOcupacionMesCrossdocking", `ocupacion-diaria-crossdocking-${mesActual}.xlsx`);
+});
+
+// =========================================================
+// EVOLUCIÓN (vista aparte, estilo Dashboard de Embarques)
+// =========================================================
+let chartsEvoInstances = [];
+
+function colorOcupacion(pct) {
+  if (pct === null || pct === undefined) return "#f0f2f6";
+  const clamped = Math.max(0, Math.min(100, pct));
+  const hue = (clamped / 100) * 130; // 0=rosa/rojo, 130=verde
+  return `hsl(${hue}, 65%, 84%)`;
+}
+
+function mesAnteriorDe(mesStr) {
+  const [y, m] = mesStr.split("-").map(Number);
+  const d = new Date(y, m - 2, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function renderEvolucion() {
+  chartsEvoInstances.forEach(c => c.destroy());
+  chartsEvoInstances = [];
+
+  const mesActual = new Date().toISOString().slice(0,7);
+  const mesAnterior = mesAnteriorDe(mesActual);
+  const nombreMesActual = NOMBRES_MES[Number(mesActual.slice(5,7)) - 1];
+  document.getElementById("evoTituloMesActual").textContent = `Evolución en ${nombreMesActual} (día a día)`;
+
+  // datosOcupacion[interno][mes] = {pax, butacas} — combina vehículos + crossdocking
+  const datosOcupacion = {};
+  // datosDia[interno][dia] = pax — solo mes en curso, sin carga histórica
+  const datosDia = {};
+
+  registros.forEach(r => {
+    const m = r.fecha.slice(0,7);
+    const dia = r.fecha.slice(8,10);
+    const esHistorico = r.coordinador === "Carga histórica (Excel)";
+    const entradas = [...(r.contenido?.vehiculos_subieron || []), ...(r.contenido?.crossdocking || [])];
+    entradas.forEach(v => {
+      if (!v.interno || !v.pax) return;
+      const butacas = INTERNOS_BUTACAS[v.interno];
+      if (!butacas) return;
+      if (!datosOcupacion[v.interno]) datosOcupacion[v.interno] = {};
+      if (!datosOcupacion[v.interno][m]) datosOcupacion[v.interno][m] = { pax: 0, butacas: 0 };
+      datosOcupacion[v.interno][m].pax += parseInt(v.pax) || 0;
+      datosOcupacion[v.interno][m].butacas += butacas;
+
+      if (m === mesActual && !esHistorico) {
+        if (!datosDia[v.interno]) datosDia[v.interno] = {};
+        datosDia[v.interno][dia] = (datosDia[v.interno][dia] || 0) + (parseInt(v.pax) || 0);
+      }
+    });
+  });
+
+  const internos = Object.keys(datosOcupacion).sort((a,b) => Number(a) - Number(b));
+
+  function promedioMes(interno, mes) {
+    const d = datosOcupacion[interno]?.[mes];
+    if (!d || !d.butacas) return null;
+    return Math.round((d.pax / d.butacas) * 100);
+  }
+
+  // --- KPIs: promedio general, mayor suba, mayor caída ---
+  let sumaPaxMes = 0, sumaButacasMes = 0;
+  internos.forEach(interno => {
+    const d = datosOcupacion[interno][mesActual];
+    if (d) { sumaPaxMes += d.pax; sumaButacasMes += d.butacas; }
+  });
+  const promedioGeneral = sumaButacasMes ? Math.round((sumaPaxMes / sumaButacasMes) * 100) : null;
+  document.getElementById("evoPromedioGrande").textContent = promedioGeneral !== null ? promedioGeneral + "%" : "—";
+  document.getElementById("evoPromedioSub").textContent = `${nombreMesActual}, promedio de todos los recorridos`;
+
+  let mayorSuba = null, mayorCaida = null;
+  internos.forEach(interno => {
+    const actual = promedioMes(interno, mesActual);
+    const anterior = promedioMes(interno, mesAnterior);
+    if (actual === null || anterior === null) return;
+    const diff = actual - anterior;
+    if (!mayorSuba || diff > mayorSuba.diff) mayorSuba = { interno, diff };
+    if (!mayorCaida || diff < mayorCaida.diff) mayorCaida = { interno, diff };
+  });
+
+  function pintarMiniCard(elId, dato) {
+    const el = document.getElementById(elId);
+    if (!dato) { el.innerHTML = `<span style="color:var(--ps-muted);font-size:12px;">Sin datos suficientes para comparar</span>`; return; }
+    const info = INTERNOS_INFO[dato.interno];
+    const signo = dato.diff > 0 ? "+" : "";
+    const color = dato.diff > 0 ? "#2c7a7b" : "#c53030";
+    el.innerHTML = `
+      <div class="ps-evo-mini-interno">${dato.interno}</div>
+      <div class="ps-evo-mini-recorrido">${info ? info.od + " · " + info.zona : "-"}</div>
+      <div class="ps-evo-mini-diff" style="color:${color};">${signo}${dato.diff} pts</div>
+    `;
+  }
+  pintarMiniCard("evoMayorSuba", mayorSuba);
+  pintarMiniCard("evoMayorCaida", mayorCaida);
+
+  // --- Grilla de mini-gráficos (evolución diaria del mes en curso) ---
+  const paletaColores = ["#e8a020", "#1e2d3e", "#2c7a7b", "#805ad5", "#3182ce", "#c53030"];
+  const internosConDiario = Object.keys(datosDia).sort((a,b) => Number(a) - Number(b));
+  const grid = document.getElementById("evoGrid");
+
+  if (!internosConDiario.length) {
+    grid.innerHTML = `<div class="ps-empty">Todavía no hay partes cargados este mes</div>`;
+  } else {
+    grid.innerHTML = internosConDiario.map((interno, idx) => {
+      const info = INTERNOS_INFO[interno];
+      const butacas = INTERNOS_BUTACAS[interno];
+      const dias = Object.keys(datosDia[interno]).sort();
+      const promedio = promedioMes(interno, mesActual);
+      return `
+        <div class="ps-evo-card">
+          <div class="ps-evo-card-pct">${promedio !== null ? promedio + "%" : "—"}</div>
+          <div class="ps-evo-card-nombre">${interno} · ${info ? info.zona : "-"}</div>
+          <div class="ps-evo-card-dias">${dias.length} día${dias.length !== 1 ? "s" : ""}</div>
+          <canvas id="evoChart_${interno}"></canvas>
+        </div>
+      `;
+    }).join("");
+
+    internosConDiario.forEach((interno, idx) => {
+      const butacas = INTERNOS_BUTACAS[interno];
+      const dias = Object.keys(datosDia[interno]).sort();
+      const valores = dias.map(d => Math.round((datosDia[interno][d] / butacas) * 100));
+      const ctx = document.getElementById(`evoChart_${interno}`).getContext("2d");
+      const color = paletaColores[idx % paletaColores.length];
+      const chart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: dias.map(d => Number(d)),
+          datasets: [{
+            data: valores, borderColor: color, backgroundColor: color + "22",
+            fill: true, tension: .35, pointRadius: 0, borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false }, tooltip: { enabled: true } },
+          scales: { x: { display: false }, y: { display: false, beginAtZero: true } }
+        }
+      });
+      chartsEvoInstances.push(chart);
+    });
+  }
+
+  // --- Tabla heatmap: evolución en el año, mes a mes ---
+  const todosLosMeses = new Set();
+  Object.values(datosOcupacion).forEach(porMes => Object.keys(porMes).forEach(m => todosLosMeses.add(m)));
+  const mesesTabla = Array.from(todosLosMeses).sort();
+
+  const thead = document.getElementById("theadEvolucion");
+  const tbody = document.getElementById("tbodyEvolucion");
+
+  if (!mesesTabla.length) {
+    thead.innerHTML = "<th>Recorrido</th><th>Sin datos</th>";
+    tbody.innerHTML = `<tr><td colspan="2" class="ps-empty">Todavía no hay Pax cargados</td></tr>`;
+  } else {
+    thead.innerHTML = `<th>Recorrido</th>` + mesesTabla.map(m => `<th>${labelMes(m)}</th>`).join("");
+    tbody.innerHTML = internos.map(interno => {
+      const info = INTERNOS_INFO[interno];
+      const celdas = mesesTabla.map(m => {
+        const pct = promedioMes(interno, m);
+        const bg = colorOcupacion(pct);
+        return `<td style="background:${bg};text-align:center;font-weight:600;">${pct !== null ? pct + "%" : "—"}</td>`;
+      }).join("");
+      return `
+        <tr>
+          <td style="white-space:nowrap;"><strong>${interno}</strong> <span class="ps-recorrido-info">${info ? info.od + " · " + info.zona : "-"}</span></td>
+          ${celdas}
+        </tr>
+      `;
+    }).join("");
+  }
+}
+
+document.getElementById("btnExportEvolucion").addEventListener("click", () => {
+  exportarTablaExcel("tablaEvolucion", `evolucion-ocupacion-${new Date().toISOString().slice(0,10)}.xlsx`);
 });
 
 cargarTodo();
