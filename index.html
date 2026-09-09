@@ -171,6 +171,13 @@ textarea.ps-input { resize:vertical; min-height:50px; }
       </div>
 
       <div class="ps-item">
+        <label>Cambios en Crossdocking</label>
+        <small>Interno titular y con qué interno se lo reemplazó, para los servicios de crossdocking</small>
+        <div class="ps-rows" id="rows_cambios_cross"></div>
+        <button class="ps-add-btn" id="btnAddCambioCross">+ Agregar cambio</button>
+      </div>
+
+      <div class="ps-item">
         <label>¿Hubo afectación al personal de PAE por estos cambios?</label>
         <textarea class="ps-input" id="c_afectacion_pae" placeholder="Dejar en blanco = Sin afectación"></textarea>
       </div>
@@ -284,9 +291,36 @@ textarea.ps-input { resize:vertical; min-height:50px; }
         </table>
       </div>
     </div>
-    <div class="ps-content-card">
-      <div class="ps-content-card-title">Transbordos por rotura de unidad — mes a mes</div>
-      <canvas id="chartTransbordos" height="220"></canvas>
+    <div class="pstc-card" id="cardTransbordos">
+      <div class="pstc-header">
+        <div>
+          <div class="pstc-title">Transbordos de Unidades</div>
+          <div class="pstc-subtitle" id="pstcSubtitle">PETROSAR SA · Sector Transporte</div>
+        </div>
+        <div class="pstc-header-right">
+          <span class="pstc-badge" id="pstcBadge">—</span>
+          <button class="pstc-toggle" id="btnToggleTemaTransbordos" title="Cambiar modo claro/oscuro">🌙</button>
+        </div>
+      </div>
+
+      <div class="pstc-section-label">Detalle mensual</div>
+      <div class="ps-table-wrap" style="border-color:transparent;">
+        <table class="pstc-table" id="tablaDetalleTransbordos">
+          <thead><tr id="theadDetalleTransbordos"></tr></thead>
+          <tbody><tr id="filaDetalleTransbordos"></tr></tbody>
+        </table>
+      </div>
+
+      <div class="pstc-kpi-row" id="pstcKpiRow"></div>
+
+      <div class="pstc-section-label">Comparativa visual</div>
+      <canvas id="chartTransbordos" height="130"></canvas>
+    </div>
+
+    <div class="ps-content-card" style="text-align:center;">
+      <div class="ps-content-card-title" style="text-align:left;">Reemplazo de Unidades</div>
+      <div style="font-size:11px;color:var(--ps-muted);margin:-8px 0 10px;">Reemplazos por reparación (motivo "En reparación" en Vehículos suplantados por relevos) — mes a mes</div>
+      <canvas id="chartReemplazo" height="230"></canvas>
     </div>
   </section>
 
@@ -359,6 +393,46 @@ textarea.ps-input { resize:vertical; min-height:50px; }
 
 .ps-evo-leyenda { display:flex; align-items:center; gap:8px; margin-top:12px; font-size:11px; color:var(--ps-muted); }
 .ps-evo-leyenda-barra { flex:0 0 140px; height:10px; border-radius:5px; background:linear-gradient(90deg, hsl(0,65%,82%), hsl(65,65%,82%), hsl(130,65%,82%)); }
+
+/* --- Card "Transbordos de Unidades" (claro/oscuro) --- */
+.pstc-card {
+  --pstc-bg:#fff; --pstc-bg2:#fafbfc; --pstc-border:var(--ps-border); --pstc-text:var(--ps-text);
+  --pstc-muted:var(--ps-muted); --pstc-accent:var(--ps-accent);
+  background:var(--pstc-bg); border:1px solid var(--pstc-border); border-radius:12px; padding:18px;
+  margin-bottom:16px; transition:background .25s, color .25s;
+}
+.pstc-card.dark {
+  --pstc-bg:#161f34; --pstc-bg2:#1e2942; --pstc-border:#2e3b58; --pstc-text:#e8ecf4;
+  --pstc-muted:#8a97b3; --pstc-accent:#5b9bfb;
+  color:var(--pstc-text);
+}
+.pstc-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; flex-wrap:wrap; gap:8px; }
+.pstc-title { font-family:'Poppins',sans-serif; font-weight:800; font-size:16px; color:var(--pstc-text); }
+.pstc-subtitle { font-size:12px; color:var(--pstc-muted); margin-top:2px; }
+.pstc-header-right { display:flex; align-items:center; gap:8px; }
+.pstc-badge { background:var(--pstc-accent); color:#fff; font-size:11px; font-weight:700; padding:6px 14px; border-radius:20px; white-space:nowrap; }
+.pstc-toggle {
+  border:1px solid var(--pstc-border); background:var(--pstc-bg2);
+  border-radius:9px; padding:7px 10px; cursor:pointer; font-size:13px; line-height:1;
+}
+
+.pstc-section-label { font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--pstc-muted); font-weight:700; margin:14px 0 8px; }
+
+.pstc-table { width:100%; border-collapse:separate; border-spacing:0 4px; font-size:13px; }
+.pstc-table th { text-align:center; padding:9px 8px; font-size:10px; font-weight:700; color:var(--pstc-muted); background:var(--pstc-bg2); text-transform:uppercase; white-space:nowrap; }
+.pstc-table th:first-child { text-align:left; border-radius:8px 0 0 8px; }
+.pstc-table th.pstc-total { background:var(--pstc-accent); color:#fff; border-radius:0 8px 8px 0; }
+.pstc-table td { text-align:center; padding:11px 8px; color:var(--pstc-text); font-weight:600; background:var(--pstc-bg2); }
+.pstc-table td:first-child { text-align:left; color:var(--pstc-muted); font-weight:600; white-space:nowrap; border-radius:8px 0 0 8px; }
+.pstc-table td.pstc-total { background:var(--pstc-accent); color:#fff; font-weight:800; border-radius:0 8px 8px 0; }
+.pstc-dot { display:inline-block; width:5px; height:5px; border-radius:50%; background:var(--pstc-accent); margin-top:3px; }
+
+.pstc-kpi-row { display:grid; grid-template-columns:repeat(auto-fit, minmax(140px,1fr)); gap:12px; margin-top:6px; }
+.pstc-kpi { background:var(--pstc-bg2); border:1px solid var(--pstc-border); border-radius:10px; padding:14px; text-align:center; }
+.pstc-kpi-value { font-family:'Poppins',sans-serif; font-weight:800; font-size:21px; color:var(--pstc-accent); -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; }
+.pstc-kpi-label { font-size:10px; color:var(--pstc-muted); margin-top:4px; text-transform:uppercase; letter-spacing:.03em; }
+
+#chartTransbordos { max-height:130px; }
 </style>
 
 </div>
@@ -517,15 +591,20 @@ document.getElementById("btnAddCrossdocking").addEventListener("click", () => ad
 let relevosRows = [];
 let historicoInternos = []; // memoria: internos usados anteriormente como titular o relevo
 function addRelevoRow(data = {}) {
-  relevosRows.push({ id: Date.now() + Math.random(), titular: data.titular || "", relevo: data.relevo || "" });
+  relevosRows.push({ id: Date.now() + Math.random(), titular: data.titular || "", relevo: data.relevo || "", motivo: data.motivo || "" });
   renderRelevos();
 }
 function renderRelevos() {
   const el = document.getElementById("rows_relevos");
   el.innerHTML = relevosRows.map(r => `
-    <div class="ps-row ps-row-2">
+    <div class="ps-row ps-row-3">
       <input type="text" class="ps-input" list="dl_internos" placeholder="Interno titular" value="${r.titular}" oninput="updateRelevo('${r.id}','titular',this.value)">
       <input type="text" class="ps-input" list="dl_internos" placeholder="Interno relevo" value="${r.relevo}" oninput="updateRelevo('${r.id}','relevo',this.value)">
+      <select class="ps-input" onchange="updateRelevo('${r.id}','motivo',this.value)">
+        <option value="">Motivo</option>
+        <option value="En reparación" ${r.motivo === "En reparación" ? "selected" : ""}>En reparación</option>
+        <option value="Cambio operativo" ${r.motivo === "Cambio operativo" ? "selected" : ""}>Cambio operativo</option>
+      </select>
       <button class="ps-row-del" onclick="removeRelevo('${r.id}')">✕</button>
     </div>
   `).join("");
@@ -539,6 +618,32 @@ function removeRelevo(id) {
   renderRelevos();
 }
 document.getElementById("btnAddRelevo").addEventListener("click", () => addRelevoRow());
+
+// -- Cambios en Crossdocking: Titular | Relevo (sin motivo) --
+let cambiosCrossRows = [];
+function addCambioCrossRow(data = {}) {
+  cambiosCrossRows.push({ id: Date.now() + Math.random(), titular: data.titular || "", relevo: data.relevo || "" });
+  renderCambiosCross();
+}
+function renderCambiosCross() {
+  const el = document.getElementById("rows_cambios_cross");
+  el.innerHTML = cambiosCrossRows.map(r => `
+    <div class="ps-row ps-row-2">
+      <input type="text" class="ps-input" list="dl_internos" placeholder="Interno titular" value="${r.titular}" oninput="updateCambioCross('${r.id}','titular',this.value)">
+      <input type="text" class="ps-input" list="dl_internos" placeholder="Interno relevo" value="${r.relevo}" oninput="updateCambioCross('${r.id}','relevo',this.value)">
+      <button class="ps-row-del" onclick="removeCambioCross('${r.id}')">✕</button>
+    </div>
+  `).join("");
+}
+function updateCambioCross(id, field, val) {
+  const row = cambiosCrossRows.find(r => r.id == id);
+  if (row) row[field] = val;
+}
+function removeCambioCross(id) {
+  cambiosCrossRows = cambiosCrossRows.filter(r => r.id != id);
+  renderCambiosCross();
+}
+document.getElementById("btnAddCambioCross").addEventListener("click", () => addCambioCrossRow());
 
 function actualizarDatalistInternos() {
   const dl = document.getElementById("dl_internos");
@@ -605,6 +710,7 @@ document.getElementById("btnAddLlegada").addEventListener("click", () => addLleg
 // último parte guardado (ver inicializarFormulario, llamada desde cargarTodo).
 // Relevos, transbordos y llegadas arrancan siempre con 1 fila vacía por día.
 addRelevoRow();
+addCambioCrossRow();
 addTransbordoRow();
 addLlegadaRow();
 
@@ -648,6 +754,7 @@ function construirTexto() {
   const subieron = subieronRows.filter(r => r.origen || r.destino || r.interno);
   const crossdocking = crossdockingRows.filter(r => r.origen || r.destino || r.interno);
   const relevos = relevosRows.filter(r => r.titular || r.relevo);
+  const cambiosCross = cambiosCrossRows.filter(r => r.titular || r.relevo);
   const transbordos = transbordosRows.filter(r => r.interno || r.detalle);
   const llegadas = llegadasRows.filter(r => r.interno || r.motivo);
 
@@ -687,8 +794,15 @@ function construirTexto() {
   lineas.push("");
 
   lineas.push("VEHÍCULOS SUPLANTADOS POR RELEVOS");
-  if (relevos.length) relevos.forEach(r => lineas.push(`Titular ${r.titular || "-"} reemplazado por Relevo ${r.relevo || "-"}`));
+  if (relevos.length) relevos.forEach(r => lineas.push(
+    `Titular ${r.titular || "-"} reemplazado por Relevo ${r.relevo || "-"}${r.motivo ? " — Motivo: " + r.motivo : ""}`
+  ));
   else lineas.push("Sin relevos.");
+  lineas.push("");
+
+  lineas.push("CAMBIOS EN CROSSDOCKING");
+  if (cambiosCross.length) cambiosCross.forEach(r => lineas.push(`Titular ${r.titular || "-"} reemplazado por Relevo ${r.relevo || "-"}`));
+  else lineas.push("Sin cambios en crossdocking.");
   lineas.push("");
 
   lineas.push("AFECTACIÓN A PERSONAL DE PAE");
@@ -723,6 +837,7 @@ function construirTexto() {
     vehiculos_subieron: subieron,
     crossdocking: crossdocking,
     relevos: relevos,
+    cambios_crossdocking: cambiosCross,
     afectacion_pae: afectacionPae,
     transbordos: transbordos,
     estado_rutas: estadoRutas,
@@ -911,6 +1026,115 @@ async function borrarParte(id) {
 
 let chartTransbordosInstance = null;
 
+// --- Plugin: barras con relieve 3D real (cara frontal + superior + lateral) ---
+function ajustarColor(hex, porcentaje) {
+  const num = parseInt(hex.replace("#", ""), 16);
+  let r = (num >> 16) + Math.round(2.55 * porcentaje);
+  let g = ((num >> 8) & 0x00FF) + Math.round(2.55 * porcentaje);
+  let b = (num & 0x0000FF) + Math.round(2.55 * porcentaje);
+  r = Math.max(0, Math.min(255, r));
+  g = Math.max(0, Math.min(255, g));
+  b = Math.max(0, Math.min(255, b));
+  return `rgb(${r},${g},${b})`;
+}
+
+const pseudo3dBarsPlugin = {
+  id: "pseudo3dBars",
+  afterDatasetsDraw(chart) {
+    const meta = chart.getDatasetMeta(0);
+    if (!meta || !meta.data.length) return;
+    const ctx = chart.ctx;
+    const colorBase = chart.data.datasets[0].backgroundColor;
+    if (typeof colorBase !== "string" || !colorBase.startsWith("#")) return;
+    const colorTapa = ajustarColor(colorBase, 22);
+    const colorLateral = ajustarColor(colorBase, -22);
+    const profundidad = 6;
+
+    meta.data.forEach(bar => {
+      const { x, y, base, width } = bar.getProps(["x", "y", "base", "width"], true);
+      if (base - y < 1) return; // valor 0, no hay barra
+      const left = x - width / 2;
+      const right = x + width / 2;
+
+      ctx.save();
+      // Cara superior (paralelogramo)
+      ctx.beginPath();
+      ctx.moveTo(left, y);
+      ctx.lineTo(left + profundidad, y - profundidad);
+      ctx.lineTo(right + profundidad, y - profundidad);
+      ctx.lineTo(right, y);
+      ctx.closePath();
+      ctx.fillStyle = colorTapa;
+      ctx.fill();
+
+      // Cara lateral derecha (paralelogramo)
+      ctx.beginPath();
+      ctx.moveTo(right, y);
+      ctx.lineTo(right + profundidad, y - profundidad);
+      ctx.lineTo(right + profundidad, base - profundidad);
+      ctx.lineTo(right, base);
+      ctx.closePath();
+      ctx.fillStyle = colorLateral;
+      ctx.fill();
+      ctx.restore();
+    });
+  }
+};
+
+// --- Plugin: valor numérico arriba de cada barra ---
+const valorEncimaBarraPlugin = {
+  id: "valorEncimaBarra",
+  afterDatasetsDraw(chart) {
+    const meta = chart.getDatasetMeta(0);
+    if (!meta) return;
+    const ctx = chart.ctx;
+    ctx.save();
+    ctx.fillStyle = "#3a3a3a";
+    ctx.font = "bold 12px 'Poppins', sans-serif";
+    ctx.textAlign = "center";
+    meta.data.forEach((bar, i) => {
+      const valor = chart.data.datasets[0].data[i];
+      if (valor === null || valor === undefined) return;
+      const { x, y } = bar.getProps(["x", "y"], true);
+      ctx.fillText(valor, x, y - 8);
+    });
+    ctx.restore();
+  }
+};
+
+let chartReemplazoInstance = null;
+function renderChartReemplazo(mesesOrdenados, mesesReemplazo) {
+  const ctx = document.getElementById("chartReemplazo").getContext("2d");
+  if (chartReemplazoInstance) chartReemplazoInstance.destroy();
+  chartReemplazoInstance = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: mesesOrdenados.map(labelMes),
+      datasets: [{
+        label: "Reemplazo de unidades",
+        data: mesesOrdenados.map(m => mesesReemplazo[m] || 0),
+        backgroundColor: "#92d050",
+        hoverBackgroundColor: "#7ec13d",
+        borderRadius: 3,
+        maxBarThickness: 40
+      }]
+    },
+    plugins: [valorEncimaBarraPlugin],
+    options: {
+      maintainAspectRatio: false,
+      layout: { padding: { top: 20 } },
+      plugins: {
+        legend: { display: true, position: "bottom", labels: { boxWidth: 14, font: { size: 12 } } },
+        tooltip: { enabled: false }
+      },
+      scales: {
+        y: { display: false, beginAtZero: true },
+        x: { ticks: { color: "#4a4a4a", font: { size: 11 } }, grid: { color: "#eceff3" } }
+      }
+    }
+  });
+}
+
 const MESES_ABREV = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 const NOMBRES_MES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
 function labelMes(m) {
@@ -1009,6 +1233,7 @@ function renderTablaOcupacionDiaria(datosDia, theadId, tbodyId) {
 
 function renderStats() {
   const mesesTransbordos = {};
+  const mesesReemplazo = {};
   const mesesPax = {};
   // datosOcupacionVehiculos/Crossdocking[interno][mes] = { pax, butacas }
   const datosOcupacionVehiculos = {};
@@ -1044,6 +1269,9 @@ function renderStats() {
     const cantidadTransbordos = (r.contenido?.transbordos || []).length;
     mesesTransbordos[m] = (mesesTransbordos[m] || 0) + cantidadTransbordos;
 
+    const cantidadReemplazos = (r.contenido?.relevos || []).filter(rel => rel.motivo === "En reparación").length;
+    mesesReemplazo[m] = (mesesReemplazo[m] || 0) + cantidadReemplazos;
+
     // Se juntan ambas secciones del formulario y se reclasifican según la lista fija
     // de internos de crossdocking — así un interno siempre cae en la misma tabla,
     // sin importar en qué casillero lo haya cargado el coordinador ese día.
@@ -1078,16 +1306,102 @@ function renderStats() {
   renderTablaOcupacionDiaria(datosDiaVehiculos, "theadOcupacionMesVehiculos", "tbodyOcupacionMesVehiculos");
   renderTablaOcupacionDiaria(datosDiaCross, "theadOcupacionMesCrossdocking", "tbodyOcupacionMesCrossdocking");
 
-  // --- Gráfico de transbordos ---
+  renderCardTransbordos(mesesOrdenados, mesesTransbordos);
+  renderChartReemplazo(mesesOrdenados, mesesReemplazo);
+}
+
+// =========================================================
+// CARD "Transbordos de Unidades" — tabla + KPIs + gráfico, con modo claro/oscuro
+// =========================================================
+let temaOscuroTransbordos = false;
+let ultimosDatosTransbordos = null;
+
+document.getElementById("btnToggleTemaTransbordos").addEventListener("click", () => {
+  temaOscuroTransbordos = !temaOscuroTransbordos;
+  document.getElementById("cardTransbordos").classList.toggle("dark", temaOscuroTransbordos);
+  document.getElementById("btnToggleTemaTransbordos").textContent = temaOscuroTransbordos ? "☀️" : "🌙";
+  if (ultimosDatosTransbordos) renderCardTransbordos(ultimosDatosTransbordos.meses, ultimosDatosTransbordos.datos);
+});
+
+function renderCardTransbordos(mesesOrdenados, mesesTransbordos) {
+  ultimosDatosTransbordos = { meses: mesesOrdenados, datos: mesesTransbordos };
+
+  if (!mesesOrdenados.length) {
+    document.getElementById("pstcSubtitle").textContent = "PETROSAR SA · Sector Transporte";
+    document.getElementById("pstcBadge").textContent = "Sin datos";
+    document.getElementById("theadDetalleTransbordos").innerHTML = "<th>Indicador</th><th>Sin datos</th>";
+    document.getElementById("filaDetalleTransbordos").innerHTML = `<td class="ps-empty" colspan="2">Todavía no hay partes cargados</td>`;
+    document.getElementById("pstcKpiRow").innerHTML = "";
+    return;
+  }
+
+  const primerMes = labelMes(mesesOrdenados[0]);
+  const ultimoMes = labelMes(mesesOrdenados[mesesOrdenados.length - 1]);
+  document.getElementById("pstcSubtitle").textContent = `PETROSAR SA · Sector Transporte · ${primerMes} a ${ultimoMes}`;
+  document.getElementById("pstcBadge").textContent = `${primerMes} → ${ultimoMes}`;
+
+  // --- Detalle mensual (tabla tipo indicador) ---
+  document.getElementById("theadDetalleTransbordos").innerHTML =
+    `<th>Indicador</th>` + mesesOrdenados.map(m => `<th>${labelMes(m)}</th>`).join("") + `<th class="pstc-total">Total</th>`;
+
+  const total = mesesOrdenados.reduce((sum, m) => sum + mesesTransbordos[m], 0);
+  document.getElementById("filaDetalleTransbordos").innerHTML =
+    `<td>⇄ Transbordos de unidades</td>` +
+    mesesOrdenados.map(m => {
+      const cantidad = mesesTransbordos[m];
+      return `<td>${cantidad > 0 ? cantidad : "—"}${cantidad > 0 ? '<br><span class="pstc-dot"></span>' : ""}</td>`;
+    }).join("") +
+    `<td class="pstc-total">${total}</td>`;
+
+  // --- KPIs ---
+  const mesesSinTransbordos = mesesOrdenados.filter(m => mesesTransbordos[m] === 0).length;
+  const mesesConOcurrencia = mesesOrdenados.filter(m => mesesTransbordos[m] > 0).map(m => labelMes(m).split(" ")[0]);
+  document.getElementById("pstcKpiRow").innerHTML = `
+    <div class="pstc-kpi"><div class="pstc-kpi-value">${total}</div><div class="pstc-kpi-label">Total transbordos ${primerMes}–${ultimoMes}</div></div>
+    <div class="pstc-kpi"><div class="pstc-kpi-value">${mesesSinTransbordos}</div><div class="pstc-kpi-label">Meses sin transbordos</div></div>
+    <div class="pstc-kpi"><div class="pstc-kpi-value" style="font-size:14px;">${mesesConOcurrencia.length ? mesesConOcurrencia.join(" · ") : "—"}</div><div class="pstc-kpi-label">Meses con ocurrencia</div></div>
+  `;
+
+  // --- Gráfico ---
+  const colorBarra = temaOscuroTransbordos ? "#4a6fa5" : "#1e2d3e";
+  const colorBarraHover = temaOscuroTransbordos ? "#6ea8fc" : "#334a63";
+  const colorGrid = temaOscuroTransbordos ? "#2a3650" : "#f1f3f6";
+  const colorTicks = temaOscuroTransbordos ? "#8a97b3" : "#718096";
+
   const ctx = document.getElementById("chartTransbordos").getContext("2d");
+
   if (chartTransbordosInstance) chartTransbordosInstance.destroy();
   chartTransbordosInstance = new Chart(ctx, {
     type: "bar",
     data: {
       labels: mesesOrdenados.map(labelMes),
-      datasets: [{ data: mesesOrdenados.map(m => mesesTransbordos[m]), backgroundColor: "#e8a020", borderRadius: 6, label: "Transbordos" }]
+      datasets: [{
+        data: mesesOrdenados.map(m => mesesTransbordos[m]),
+        backgroundColor: colorBarra,
+        hoverBackgroundColor: colorBarraHover,
+        borderRadius: 0,
+        borderSkipped: false,
+        label: "Transbordos",
+        maxBarThickness: 26
+      }]
     },
-    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+    plugins: [pseudo3dBarsPlugin],
+    options: {
+      maintainAspectRatio: false,
+      layout: { padding: { top: 10, right: 10 } },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: temaOscuroTransbordos ? "#1e2942" : "#1e2d3e",
+          padding: 8, cornerRadius: 6, displayColors: false,
+          titleFont: { size: 11 }, bodyFont: { size: 12, weight: "700" }
+        }
+      },
+      scales: {
+        y: { beginAtZero: true, ticks: { stepSize: 1, color: colorTicks, font: { size: 10 } }, grid: { color: colorGrid } },
+        x: { ticks: { color: colorTicks, font: { size: 10 } }, grid: { display: false } }
+      }
+    }
   });
 }
 
