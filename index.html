@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 <style>
 :root {
   --ps-bg:#f0f2f6; --ps-header-bg:#1e2d3e; --ps-header-bg2:#192638;
@@ -102,7 +102,7 @@ textarea.ps-input { resize:vertical; min-height:50px; }
 .ps-table tbody td:first-child { font-weight:600; color:var(--ps-header-bg); white-space:nowrap; }
 
 .ps-ocup-cell { display:block; text-align:center; font-weight:500; font-variant-numeric:tabular-nums; color:var(--ps-text); }
-.ps-table td.ps-ocup-promedio { border-left:1px solid var(--ps-border); }
+.ps-table td.ps-ocup-promedio { border-left:1px solid var(--ps-border); background:#fdf1da; }
 .ps-table td.ps-ocup-promedio .ps-ocup-cell { font-weight:700; color:var(--ps-header-bg); }
 .ps-recorrido-info { font-size:12px; color:var(--ps-muted); font-weight:400; white-space:nowrap; }
 </style>
@@ -116,7 +116,7 @@ textarea.ps-input { resize:vertical; min-height:50px; }
   <div>
     <div class="ps-header-code">RO-P-06-02</div>
     <div class="ps-header-title">PARTE DE NOVEDADES</div>
-    <div class="ps-header-sub">Transporte PAEG — PETROSAR SA</div>
+    <div class="ps-header-sub">Transporte PAE — PETROSAR SA</div>
   </div>
 </header>
 
@@ -204,10 +204,14 @@ textarea.ps-input { resize:vertical; min-height:50px; }
     <div class="ps-content-card" id="cardPreview" style="display:none;">
       <div class="ps-content-card-title">Parte generado</div>
       <div class="ps-preview" id="preview"></div>
+      <p style="font-size:12px;color:var(--ps-muted);margin:12px 0 6px;">
+        <strong>Guardá</strong> primero para que quede en el historial y en las Estadísticas.
+        Después usá <strong>Copiar</strong> o <strong>PDF</strong> según cómo se lo vayas a mandar al cliente.
+      </p>
       <div class="ps-actions">
+        <button class="ps-btn ps-btn-accent" id="btnGuardar">Guardar en historial</button>
         <button class="ps-btn ps-btn-outline" id="btnCopiar">Copiar texto</button>
         <button class="ps-btn ps-btn-outline" id="btnPdf">Descargar PDF</button>
-        <button class="ps-btn ps-btn-accent" id="btnGuardar">Guardar en historial</button>
       </div>
     </div>
 
@@ -568,7 +572,7 @@ function construirTexto() {
   const llegadas = llegadasRows.filter(r => r.interno || r.motivo);
 
   let lineas = [];
-  lineas.push("RO-P-06-02 — PARTE DE NOVEDADES - TRANSPORTE PAEG");
+  lineas.push("RO-P-06-02 — PARTE DE NOVEDADES - TRANSPORTE PAE");
   lineas.push(`Fecha: ${fechaFmt(fecha)}`);
   lineas.push("");
 
@@ -666,8 +670,7 @@ document.getElementById("btnCopiar").addEventListener("click", async () => {
   showToast("Texto copiado ✓");
 });
 
-document.getElementById("btnPdf").addEventListener("click", () => {
-  if (!ultimoParte) return;
+function generarPdfDesdeParte(fecha, texto) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -689,7 +692,7 @@ document.getElementById("btnPdf").addEventListener("click", () => {
     doc.text("PARTE DE NOVEDADES", margin + 52, 38);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
-    doc.text("Transporte PAEG — PETROSAR SA", margin + 52, 52);
+    doc.text("Transporte PAE — PETROSAR SA", margin + 52, 52);
     doc.setTextColor(0, 0, 0);
     return 90; // y inicial debajo del header
   }
@@ -697,10 +700,10 @@ document.getElementById("btnPdf").addEventListener("click", () => {
   let y = dibujarEncabezado();
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
-  doc.text(`Fecha: ${fechaFmt(ultimoParte.fecha)}`, margin, y);
+  doc.text(`Fecha: ${fechaFmt(fecha)}`, margin, y);
   y += 20;
 
-  const bloques = ultimoParte.texto.split("\n\n").slice(1); // saltea encabezado ya impreso
+  const bloques = texto.split("\n\n").slice(1); // saltea encabezado ya impreso
   bloques.forEach(bloque => {
     const [titulo, ...resto] = bloque.split("\n");
     const esTablaAlineada = titulo === "VEHÍCULOS QUE SUBIERON A YACIMIENTO" || titulo === "CROSSDOCKING";
@@ -729,7 +732,12 @@ document.getElementById("btnPdf").addEventListener("click", () => {
     if (y > 760) { doc.addPage(); y = dibujarEncabezado() + 10; }
   });
 
-  doc.save(`parte-transporte-${ultimoParte.fecha}.pdf`);
+  doc.save(`parte-transporte-${fecha}.pdf`);
+}
+
+document.getElementById("btnPdf").addEventListener("click", () => {
+  if (!ultimoParte) return;
+  generarPdfDesdeParte(ultimoParte.fecha, ultimoParte.texto);
 });
 
 document.getElementById("btnGuardar").addEventListener("click", async () => {
@@ -793,6 +801,7 @@ function renderHistorial() {
       <div class="ps-historial-fecha">${fechaFmt(r.fecha)}${r.coordinador ? " — " + r.coordinador : ""}</div>
       <div style="display:flex;gap:6px;">
         <button class="ps-btn ps-btn-outline" style="padding:5px 12px;font-size:12px;" onclick='copiarHistorial(${JSON.stringify(r.texto)})'>Copiar</button>
+        <button class="ps-btn ps-btn-outline" style="padding:5px 12px;font-size:12px;" onclick='descargarPdfHistorial("${r.fecha}", ${JSON.stringify(r.texto)})'>PDF</button>
         <button class="ps-btn ps-btn-outline" style="padding:5px 12px;font-size:12px;color:#c53030;" onclick="borrarParte('${r.id}')">Borrar</button>
       </div>
     </div>
@@ -802,6 +811,10 @@ function renderHistorial() {
 async function copiarHistorial(texto) {
   await navigator.clipboard.writeText(texto);
   showToast("Texto copiado ✓");
+}
+
+function descargarPdfHistorial(fecha, texto) {
+  generarPdfDesdeParte(fecha, texto);
 }
 
 async function borrarParte(id) {
@@ -998,10 +1011,62 @@ function renderStats() {
   });
 }
 
-function exportarTablaExcel(tableId, nombreArchivo) {
+async function exportarTablaExcel(tableId, nombreArchivo) {
   const tabla = document.getElementById(tableId);
-  const wb = XLSX.utils.table_to_book(tabla, { raw: false });
-  XLSX.writeFile(wb, nombreArchivo);
+  const filas = Array.from(tabla.querySelectorAll("tr"));
+  if (!filas.length) { showToast("No hay datos para exportar"); return; }
+
+  const workbook = new ExcelJS.Workbook();
+  const ws = workbook.addWorksheet("Datos");
+
+  const headerCeldas = Array.from(filas[0].querySelectorAll("th")).map(th => th.textContent.trim());
+  ws.addRow(headerCeldas);
+  ws.getRow(1).eachCell(cell => {
+    cell.font = { bold: true, color: { argb: "FF718096" }, size: 10 };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFAFBFC" } };
+    cell.alignment = { horizontal: "center", vertical: "middle" };
+  });
+
+  // Columnas a resaltar con el mismo color que en la app (Promedio / % Ocup.)
+  const columnasPromedio = [];
+  headerCeldas.forEach((texto, idx) => {
+    if (/promedio|% ocup/i.test(texto)) columnasPromedio.push(idx + 1);
+  });
+
+  for (let i = 1; i < filas.length; i++) {
+    const celdas = Array.from(filas[i].querySelectorAll("td")).map(td => td.textContent.trim());
+    if (!celdas.length) continue;
+    const row = ws.addRow(celdas);
+    row.eachCell(cell => { cell.alignment = { horizontal: "center", vertical: "middle" }; });
+    row.getCell(1).font = { bold: true };
+    row.getCell(1).alignment = { horizontal: "left" };
+    if (row.getCell(2)) row.getCell(2).alignment = { horizontal: "left" };
+    columnasPromedio.forEach(colIdx => {
+      const cell = row.getCell(colIdx);
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFDF1DA" } };
+      cell.font = { bold: true };
+    });
+  }
+
+  ws.columns.forEach(col => {
+    let maxLen = 8;
+    col.eachCell({ includeEmpty: true }, cell => {
+      const len = cell.value ? String(cell.value).length : 0;
+      if (len > maxLen) maxLen = len;
+    });
+    col.width = maxLen + 3;
+  });
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nombreArchivo;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 document.getElementById("btnExportOcupacionVehiculos").addEventListener("click", () => {
   exportarTablaExcel("tablaOcupacionVehiculos", `ocupacion-vehiculos-${new Date().toISOString().slice(0,10)}.xlsx`);
