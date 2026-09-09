@@ -207,12 +207,14 @@ textarea.ps-input { resize:vertical; min-height:50px; }
 
       <div class="ps-item">
         <label>Cambio de planta</label>
-        <textarea class="ps-input" id="c_cambio_planta" placeholder="Dejar en blanco = Sin cambios"></textarea>
+        <small>Interno y lugar del cambio — dejar vacío = Sin cambios</small>
+        <div class="ps-rows" id="rows_cambio_planta"></div>
+        <button class="ps-add-btn" id="btnAddCambioPlanta">+ Agregar cambio de planta</button>
       </div>
 
       <div class="ps-item">
-        <label>Vehículos afectados</label>
-        <textarea class="ps-input" id="c_afectados" placeholder="Dejar en blanco = Sin unidades afectadas"></textarea>
+        <label>Observaciones</label>
+        <textarea class="ps-input" id="c_afectados" placeholder="Dejar en blanco = Sin observaciones"></textarea>
       </div>
 
       <button class="ps-btn ps-btn-accent" id="btnGenerar">Generar parte</button>
@@ -475,6 +477,7 @@ textarea.ps-input { resize:vertical; min-height:50px; }
   <option value="AG"></option>
   <option value="RES"></option>
 </datalist>
+<datalist id="dl_lugares_cambio"></datalist>
 
 <div class="ps-toast" id="toast"></div>
 
@@ -668,6 +671,41 @@ function removeCambioCross(id) {
 }
 document.getElementById("btnAddCambioCross").addEventListener("click", () => addCambioCrossRow());
 
+// -- Cambio de planta: Interno | Lugar (con memoria) --
+let historicoLugaresCambio = []; // memoria: lugares usados anteriormente, además de las sugerencias fijas
+let cambioPlantaRows = [];
+function addCambioPlantaRow(data = {}) {
+  cambioPlantaRows.push({ id: Date.now() + Math.random(), interno: data.interno || "", lugar: data.lugar || "" });
+  renderCambioPlanta();
+}
+function renderCambioPlanta() {
+  const el = document.getElementById("rows_cambio_planta");
+  el.innerHTML = cambioPlantaRows.map(r => `
+    <div class="ps-row ps-row-2">
+      <input type="text" class="ps-input" list="dl_internos_fijos" placeholder="Interno" value="${r.interno}" oninput="updateCambioPlanta('${r.id}','interno',this.value)">
+      <input type="text" class="ps-input" list="dl_lugares_cambio" placeholder="Lugar" value="${r.lugar}" oninput="updateCambioPlanta('${r.id}','lugar',this.value)">
+      <button class="ps-row-del" onclick="removeCambioPlanta('${r.id}')">✕</button>
+    </div>
+  `).join("");
+}
+function updateCambioPlanta(id, field, val) {
+  const row = cambioPlantaRows.find(r => r.id == id);
+  if (row) row[field] = val;
+}
+function removeCambioPlanta(id) {
+  cambioPlantaRows = cambioPlantaRows.filter(r => r.id != id);
+  renderCambioPlanta();
+}
+document.getElementById("btnAddCambioPlanta").addEventListener("click", () => addCambioPlantaRow());
+
+function actualizarDatalistLugares() {
+  const dl = document.getElementById("dl_lugares_cambio");
+  const fijos = ["Cambio en Energía", "Cambio en planta Zorro"];
+  const todos = Array.from(new Set([...fijos, ...historicoLugaresCambio]));
+  dl.innerHTML = todos.map(v => `<option value="${v}"></option>`).join("");
+}
+actualizarDatalistLugares();
+
 function actualizarDatalistInternos() {
   const dl = document.getElementById("dl_internos");
   dl.innerHTML = historicoInternos.map(v => `<option value="${v}">`).join("");
@@ -734,6 +772,7 @@ document.getElementById("btnAddLlegada").addEventListener("click", () => addLleg
 // Relevos, transbordos y llegadas arrancan siempre con 1 fila vacía por día.
 addRelevoRow();
 addCambioCrossRow();
+addCambioPlantaRow();
 addTransbordoRow();
 addLlegadaRow();
 
@@ -771,8 +810,7 @@ function construirTexto() {
   const afectacionPae = document.getElementById("c_afectacion_pae").value.trim();
   const estadoRutas = document.getElementById("c_estado_rutas").value;
   const estadoRutasObs = document.getElementById("c_estado_rutas_obs").value.trim();
-  const cambioPlanta = document.getElementById("c_cambio_planta").value.trim();
-  const vehiculosAfectados = document.getElementById("c_afectados").value.trim();
+  const observaciones = document.getElementById("c_afectados").value.trim();
 
   const subieron = subieronRows.filter(r => r.origen || r.destino || r.interno);
   const crossdocking = crossdockingRows.filter(r => r.origen || r.destino || r.interno);
@@ -780,6 +818,7 @@ function construirTexto() {
   const cambiosCross = cambiosCrossRows.filter(r => r.titular || r.relevo);
   const transbordos = transbordosRows.filter(r => r.interno || r.detalle);
   const llegadas = llegadasRows.filter(r => r.interno || r.motivo);
+  const cambioPlanta = cambioPlantaRows.filter(r => r.interno || r.lugar);
 
   let lineas = [];
   lineas.push("RO-P-06-02 — PARTE DE NOVEDADES - TRANSPORTE PAE");
@@ -847,11 +886,12 @@ function construirTexto() {
   lineas.push("");
 
   lineas.push("CAMBIO DE PLANTA");
-  lineas.push(cambioPlanta || "Sin cambios de planta.");
+  if (cambioPlanta.length) cambioPlanta.forEach(r => lineas.push(`Interno ${r.interno || "-"} — Lugar: ${r.lugar || "-"}`));
+  else lineas.push("Sin cambios.");
   lineas.push("");
 
-  lineas.push("VEHÍCULOS AFECTADOS");
-  lineas.push(vehiculosAfectados || "Sin unidades afectadas.");
+  lineas.push("OBSERVACIONES");
+  lineas.push(observaciones || "Sin observaciones.");
   lineas.push("");
 
   if (coordinador) lineas.push(`Coordinador: ${coordinador}`);
@@ -867,7 +907,7 @@ function construirTexto() {
     estado_rutas_obs: estadoRutasObs,
     llegadas: llegadas,
     cambio_planta: cambioPlanta,
-    vehiculos_afectados: vehiculosAfectados
+    observaciones: observaciones
   };
 
   return { texto: lineas.join("\n"), fecha, coordinador, contenido };
@@ -1002,6 +1042,16 @@ async function cargarTodo() {
   });
   historicoInternos = Array.from(set).sort();
   actualizarDatalistInternos();
+
+  // memoria de lugares de cambio de planta
+  const setLugares = new Set();
+  registros.forEach(r => {
+    (r.contenido?.cambio_planta || []).forEach(cp => {
+      if (cp.lugar) setLugares.add(cp.lugar);
+    });
+  });
+  historicoLugaresCambio = Array.from(setLugares).sort();
+  actualizarDatalistLugares();
 
   if (!formularioInicializado) {
     inicializarFormulario();
