@@ -317,10 +317,30 @@ textarea.ps-input { resize:vertical; min-height:50px; }
       <canvas id="chartTransbordos" height="130"></canvas>
     </div>
 
-    <div class="ps-content-card" style="text-align:center;">
-      <div class="ps-content-card-title" style="text-align:left;">Reemplazo de Unidades</div>
-      <div style="font-size:11px;color:var(--ps-muted);margin:-8px 0 10px;">Reemplazos por reparación (motivo "En reparación" en Vehículos suplantados por relevos) — mes a mes</div>
-      <canvas id="chartReemplazo" height="230"></canvas>
+    <div class="pstc-card" id="cardReemplazo">
+      <div class="pstc-header">
+        <div>
+          <div class="pstc-title">Reemplazo de Unidades</div>
+          <div class="pstc-subtitle" id="pscrSubtitle">PETROSAR SA · Sector Transporte</div>
+        </div>
+        <div class="pstc-header-right">
+          <span class="pstc-badge" id="pscrBadge">—</span>
+          <button class="pstc-toggle" id="btnToggleTemaReemplazo" title="Cambiar modo claro/oscuro">🌙</button>
+        </div>
+      </div>
+
+      <div class="pstc-section-label">Detalle mensual (año en curso)</div>
+      <div class="ps-table-wrap" style="border-color:transparent;">
+        <table class="pstc-table" id="tablaDetalleReemplazo">
+          <thead><tr id="theadDetalleReemplazo"></tr></thead>
+          <tbody><tr id="filaDetalleReemplazo"></tr></tbody>
+        </table>
+      </div>
+
+      <div class="pstc-kpi-row" id="pscrKpiRow"></div>
+
+      <div class="pstc-section-label">Comparativa visual</div>
+      <canvas id="chartReemplazo" height="130"></canvas>
     </div>
   </section>
 
@@ -406,6 +426,8 @@ textarea.ps-input { resize:vertical; min-height:50px; }
   --pstc-muted:#8a97b3; --pstc-accent:#5b9bfb;
   color:var(--pstc-text);
 }
+#cardReemplazo { --pstc-accent:#6cb33f; }
+#cardReemplazo.dark { --pstc-accent:#92d050; }
 .pstc-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; flex-wrap:wrap; gap:8px; }
 .pstc-title { font-family:'Poppins',sans-serif; font-weight:800; font-size:16px; color:var(--pstc-text); }
 .pstc-subtitle { font-size:12px; color:var(--pstc-muted); margin-top:2px; }
@@ -433,7 +455,7 @@ textarea.ps-input { resize:vertical; min-height:50px; }
 .pstc-kpi-label { font-size:10px; color:var(--pstc-muted); margin-top:4px; text-transform:uppercase; letter-spacing:.03em; }
 
 #chartTransbordos { max-height:130px; }
-#chartReemplazo { max-height:230px; width:100% !important; }
+#chartReemplazo { max-height:130px; }
 </style>
 
 </div>
@@ -1082,29 +1104,62 @@ const pseudo3dBarsPlugin = {
   }
 };
 
-// --- Plugin: valor numérico arriba de cada barra ---
-const valorEncimaBarraPlugin = {
-  id: "valorEncimaBarra",
-  afterDatasetsDraw(chart) {
-    const meta = chart.getDatasetMeta(0);
-    if (!meta) return;
-    const ctx = chart.ctx;
-    ctx.save();
-    ctx.fillStyle = "#3a3a3a";
-    ctx.font = "bold 12px 'Poppins', sans-serif";
-    ctx.textAlign = "center";
-    meta.data.forEach((bar, i) => {
-      const valor = chart.data.datasets[0].data[i];
-      if (valor === null || valor === undefined) return;
-      const { x, y } = bar.getProps(["x", "y"], true);
-      ctx.fillText(valor, x, y - 8);
-    });
-    ctx.restore();
-  }
-};
-
 let chartReemplazoInstance = null;
-function renderChartReemplazo(mesesOrdenados, mesesReemplazo) {
+let temaOscuroReemplazo = false;
+let ultimosDatosReemplazo = null;
+
+document.getElementById("btnToggleTemaReemplazo").addEventListener("click", () => {
+  temaOscuroReemplazo = !temaOscuroReemplazo;
+  document.getElementById("cardReemplazo").classList.toggle("dark", temaOscuroReemplazo);
+  document.getElementById("btnToggleTemaReemplazo").textContent = temaOscuroReemplazo ? "☀️" : "🌙";
+  if (ultimosDatosReemplazo) renderCardReemplazo(ultimosDatosReemplazo.meses, ultimosDatosReemplazo.datos);
+});
+
+function renderCardReemplazo(mesesOrdenadosCompletos, mesesReemplazo) {
+  // Siempre el año calendario en curso
+  const anioActual = String(new Date().getFullYear());
+  const mesesOrdenados = mesesOrdenadosCompletos.filter(m => m.startsWith(anioActual));
+  ultimosDatosReemplazo = { meses: mesesOrdenadosCompletos, datos: mesesReemplazo };
+
+  if (!mesesOrdenados.length) {
+    document.getElementById("pscrSubtitle").textContent = "PETROSAR SA · Sector Transporte";
+    document.getElementById("pscrBadge").textContent = "Sin datos";
+    document.getElementById("theadDetalleReemplazo").innerHTML = "<th>Indicador</th><th>Sin datos</th>";
+    document.getElementById("filaDetalleReemplazo").innerHTML = `<td class="ps-empty" colspan="2">Todavía no hay partes cargados</td>`;
+    document.getElementById("pscrKpiRow").innerHTML = "";
+    return;
+  }
+
+  const primerMes = labelMes(mesesOrdenados[0]);
+  const ultimoMes = labelMes(mesesOrdenados[mesesOrdenados.length - 1]);
+  document.getElementById("pscrSubtitle").textContent = `PETROSAR SA · Sector Transporte · ${primerMes} a ${ultimoMes}`;
+  document.getElementById("pscrBadge").textContent = `${primerMes} → ${ultimoMes}`;
+
+  // --- Detalle mensual ---
+  document.getElementById("theadDetalleReemplazo").innerHTML =
+    `<th>Indicador</th>` + mesesOrdenados.map(m => `<th>${labelMes(m)}</th>`).join("") + `<th class="pstc-total">Total</th>`;
+
+  const total = mesesOrdenados.reduce((sum, m) => sum + (mesesReemplazo[m] || 0), 0);
+  document.getElementById("filaDetalleReemplazo").innerHTML =
+    `<td>🔧 Reemplazo de unidades</td>` +
+    mesesOrdenados.map(m => {
+      const cantidad = mesesReemplazo[m] || 0;
+      return `<td>${cantidad > 0 ? cantidad : "—"}${cantidad > 0 ? '<br><span class="pstc-dot"></span>' : ""}</td>`;
+    }).join("") +
+    `<td class="pstc-total">${total}</td>`;
+
+  // --- KPIs ---
+  const mesesSinReemplazo = mesesOrdenados.filter(m => !mesesReemplazo[m]).length;
+  document.getElementById("pscrKpiRow").innerHTML = `
+    <div class="pstc-kpi"><div class="pstc-kpi-value">${total}</div><div class="pstc-kpi-label">Total reemplazos ${primerMes}–${ultimoMes}</div></div>
+    <div class="pstc-kpi"><div class="pstc-kpi-value">${mesesSinReemplazo}</div><div class="pstc-kpi-label">Meses sin reemplazos</div></div>
+  `;
+
+  // --- Gráfico ---
+  const colorBarra = temaOscuroReemplazo ? "#3f7a1f" : "#6cb33f";
+  const colorGrid = temaOscuroReemplazo ? "#2a3650" : "#f1f3f6";
+  const colorTicks = temaOscuroReemplazo ? "#8a97b3" : "#718096";
+
   const ctx = document.getElementById("chartReemplazo").getContext("2d");
   if (chartReemplazoInstance) chartReemplazoInstance.destroy();
   chartReemplazoInstance = new Chart(ctx, {
@@ -1112,25 +1167,30 @@ function renderChartReemplazo(mesesOrdenados, mesesReemplazo) {
     data: {
       labels: mesesOrdenados.map(labelMes),
       datasets: [{
-        label: "Reemplazo de unidades",
         data: mesesOrdenados.map(m => mesesReemplazo[m] || 0),
-        backgroundColor: "#92d050",
-        hoverBackgroundColor: "#7ec13d",
-        borderRadius: 3,
-        maxBarThickness: 40
+        backgroundColor: colorBarra,
+        hoverBackgroundColor: temaOscuroReemplazo ? "#92d050" : "#5a9633",
+        borderRadius: 0,
+        borderSkipped: false,
+        label: "Reemplazo de unidades",
+        maxBarThickness: 26
       }]
     },
-    plugins: [valorEncimaBarraPlugin],
+    plugins: [pseudo3dBarsPlugin],
     options: {
       maintainAspectRatio: false,
-      layout: { padding: { top: 20 } },
+      layout: { padding: { top: 10, right: 10 } },
       plugins: {
-        legend: { display: true, position: "bottom", labels: { boxWidth: 14, font: { size: 12 } } },
-        tooltip: { enabled: false }
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: temaOscuroReemplazo ? "#1e2942" : "#1e2d3e",
+          padding: 8, cornerRadius: 6, displayColors: false,
+          titleFont: { size: 11 }, bodyFont: { size: 12, weight: "700" }
+        }
       },
       scales: {
-        y: { display: false, beginAtZero: true },
-        x: { ticks: { color: "#4a4a4a", font: { size: 11 } }, grid: { color: "#eceff3" } }
+        y: { beginAtZero: true, ticks: { stepSize: 5, color: colorTicks, font: { size: 10 } }, grid: { color: colorGrid } },
+        x: { ticks: { color: colorTicks, font: { size: 10 } }, grid: { display: false } }
       }
     }
   });
@@ -1308,7 +1368,7 @@ function renderStats() {
   renderTablaOcupacionDiaria(datosDiaCross, "theadOcupacionMesCrossdocking", "tbodyOcupacionMesCrossdocking");
 
   renderCardTransbordos(mesesOrdenados, mesesTransbordos);
-  renderChartReemplazo(mesesOrdenados, mesesReemplazo);
+  renderCardReemplazo(mesesOrdenados, mesesReemplazo);
 }
 
 // =========================================================
@@ -1324,8 +1384,11 @@ document.getElementById("btnToggleTemaTransbordos").addEventListener("click", ()
   if (ultimosDatosTransbordos) renderCardTransbordos(ultimosDatosTransbordos.meses, ultimosDatosTransbordos.datos);
 });
 
-function renderCardTransbordos(mesesOrdenados, mesesTransbordos) {
-  ultimosDatosTransbordos = { meses: mesesOrdenados, datos: mesesTransbordos };
+function renderCardTransbordos(mesesOrdenadosCompletos, mesesTransbordos) {
+  // Siempre el año calendario en curso
+  const anioActual = String(new Date().getFullYear());
+  const mesesOrdenados = mesesOrdenadosCompletos.filter(m => m.startsWith(anioActual));
+  ultimosDatosTransbordos = { meses: mesesOrdenadosCompletos, datos: mesesTransbordos };
 
   if (!mesesOrdenados.length) {
     document.getElementById("pstcSubtitle").textContent = "PETROSAR SA · Sector Transporte";
