@@ -629,6 +629,7 @@ function renderRelevos() {
       <select class="ps-input" onchange="updateRelevo('${r.id}','motivo',this.value)">
         <option value="">Motivo</option>
         <option value="En reparación" ${r.motivo === "En reparación" ? "selected" : ""}>En reparación</option>
+        <option value="Reparación prolongada" ${r.motivo === "Reparación prolongada" ? "selected" : ""}>Reparación prolongada</option>
         <option value="Cambio operativo" ${r.motivo === "Cambio operativo" ? "selected" : ""}>Cambio operativo</option>
       </select>
       <button class="ps-row-del" onclick="removeRelevo('${r.id}')">✕</button>
@@ -928,12 +929,21 @@ document.getElementById("btnCopiar").addEventListener("click", async () => {
   showToast("Texto copiado ✓");
 });
 
+function ocultarPaxParaPdf(texto) {
+  return texto.split("\n").map(linea => {
+    const idx = linea.indexOf("Pax: ");
+    if (idx === -1) return linea;
+    return linea.slice(0, idx).trimEnd();
+  }).join("\n");
+}
+
 function generarPdfDesdeParte(fecha, texto) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 48;
   const maxWidth = pageWidth - margin * 2;
+  const textoPdf = ocultarPaxParaPdf(texto); // el PDF para el cliente no muestra Pax ni % de ocupación
 
   function dibujarEncabezado() {
     // Barra navy
@@ -961,7 +971,7 @@ function generarPdfDesdeParte(fecha, texto) {
   doc.text(`Fecha: ${fechaFmt(fecha)}`, margin, y);
   y += 20;
 
-  const bloques = texto.split("\n\n").slice(1); // saltea encabezado ya impreso
+  const bloques = textoPdf.split("\n\n").slice(1); // saltea encabezado ya impreso
   bloques.forEach(bloque => {
     const [titulo, ...resto] = bloque.split("\n");
     const esTablaAlineada = titulo === "VEHÍCULOS QUE SUBIERON A YACIMIENTO" || titulo === "CROSSDOCKING";
