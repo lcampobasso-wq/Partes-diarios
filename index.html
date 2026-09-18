@@ -805,6 +805,17 @@ function campo(label, valor, ancho) {
   return texto.length >= ancho ? texto + "  " : texto.padEnd(ancho, " ");
 }
 
+// Calcula el ancho ideal de una columna según el dato más largo real de ese parte,
+// para que todas las filas queden alineadas entre sí (no un ancho fijo arbitrario).
+function anchoColumna(filas, clave, etiqueta) {
+  let max = (etiqueta + "-").length;
+  filas.forEach(f => {
+    const largo = (etiqueta + (f[clave] || "-")).length;
+    if (largo > max) max = largo;
+  });
+  return max + 3;
+}
+
 function construirTexto() {
   const fecha = document.getElementById("f_fecha").value;
   const coordinador = document.getElementById("f_coordinador").value;
@@ -827,32 +838,42 @@ function construirTexto() {
   lineas.push("");
 
   lineas.push("VEHÍCULOS QUE SUBIERON A YACIMIENTO");
-  if (subieron.length) subieron.forEach(r => {
-    const butacas = INTERNOS_BUTACAS[r.interno];
-    const ocupacionTxt = (butacas && r.pax) ? `Ocupación: ${Math.round((r.pax/butacas)*100)}%` : "";
-    lineas.push(
-      campo("Origen: ", r.origen, 20) +
-      campo("Destino: ", r.destino, 14) +
-      campo("Interno: ", r.interno, 14) +
-      campo("Pax: ", r.pax || "0", 8) +
-      ocupacionTxt
-    );
-  });
+  if (subieron.length) {
+    const anchoOrigen = anchoColumna(subieron, "origen", "Origen: ");
+    const anchoDestino = anchoColumna(subieron, "destino", "Destino: ");
+    const anchoInterno = anchoColumna(subieron, "interno", "Interno: ");
+    subieron.forEach(r => {
+      const butacas = INTERNOS_BUTACAS[r.interno];
+      const ocupacionTxt = (butacas && r.pax) ? `Ocupación: ${Math.round((r.pax/butacas)*100)}%` : "";
+      lineas.push(
+        campo("Origen: ", r.origen, anchoOrigen) +
+        campo("Destino: ", r.destino, anchoDestino) +
+        campo("Interno: ", r.interno, anchoInterno) +
+        campo("Pax: ", r.pax || "0", 8) +
+        ocupacionTxt
+      );
+    });
+  }
   else lineas.push("No subieron vehículos.");
   lineas.push("");
 
   lineas.push("CROSSDOCKING");
-  if (crossdocking.length) crossdocking.forEach(r => {
-    const butacas = INTERNOS_BUTACAS[r.interno];
-    const ocupacionTxt = (butacas && r.pax) ? `Ocupación: ${Math.round((r.pax/butacas)*100)}%` : "";
-    lineas.push(
-      campo("Origen: ", r.origen, 20) +
-      campo("Destino: ", r.destino, 20) +
-      campo("Interno: ", r.interno, 14) +
-      campo("Pax: ", r.pax || "0", 8) +
-      ocupacionTxt
-    );
-  });
+  if (crossdocking.length) {
+    const anchoOrigenC = anchoColumna(crossdocking, "origen", "Origen: ");
+    const anchoDestinoC = anchoColumna(crossdocking, "destino", "Destino: ");
+    const anchoInternoC = anchoColumna(crossdocking, "interno", "Interno: ");
+    crossdocking.forEach(r => {
+      const butacas = INTERNOS_BUTACAS[r.interno];
+      const ocupacionTxt = (butacas && r.pax) ? `Ocupación: ${Math.round((r.pax/butacas)*100)}%` : "";
+      lineas.push(
+        campo("Origen: ", r.origen, anchoOrigenC) +
+        campo("Destino: ", r.destino, anchoDestinoC) +
+        campo("Interno: ", r.interno, anchoInternoC) +
+        campo("Pax: ", r.pax || "0", 8) +
+        ocupacionTxt
+      );
+    });
+  }
   else lineas.push("Sin crossdocking.");
   lineas.push("");
 
@@ -974,28 +995,21 @@ function generarPdfDesdeParte(fecha, texto) {
   const bloques = textoPdf.split("\n\n").slice(1); // saltea encabezado ya impreso
   bloques.forEach(bloque => {
     const [titulo, ...resto] = bloque.split("\n");
-    const esTablaAlineada = titulo === "VEHÍCULOS QUE SUBIERON A YACIMIENTO" || titulo === "CROSSDOCKING";
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
     const tituloLines = doc.splitTextToSize(titulo, maxWidth);
     doc.text(tituloLines, margin, y);
     y += tituloLines.length * 13 + 3;
 
-    if (esTablaAlineada) {
-      doc.setFont("courier", "normal");
-      doc.setFontSize(8.5);
-      resto.forEach(linea => {
-        doc.text(linea, margin, y);
-        y += 12;
-      });
-      y += 6;
-    } else {
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-      const lines = doc.splitTextToSize(resto.join("\n"), maxWidth);
-      doc.text(lines, margin, y);
-      y += lines.length * 13 + 12;
-    }
+    doc.setFont("courier", "normal");
+    doc.setFontSize(9);
+    const lineasEnvueltas = [];
+    resto.forEach(linea => {
+      const partes = doc.splitTextToSize(linea, maxWidth);
+      lineasEnvueltas.push(...partes);
+    });
+    doc.text(lineasEnvueltas, margin, y);
+    y += lineasEnvueltas.length * 12 + 10;
 
     if (y > 760) { doc.addPage(); y = dibujarEncabezado() + 10; }
   });
